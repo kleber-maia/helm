@@ -1,0 +1,66 @@
+{
+  "fill" : {
+    "automatic-gradient" : "display-p3:0.17885,0.41548,0.77254,1.00000"
+  },
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "blend-mode" : "normal",
+          "glass-specializations" : [
+            {
+              "value" : true
+            },
+            {
+              "appearance" : "dark",
+              "value" : false
+            },
+            {
+              "appearance" : "tinted",
+              "value" : false
+            }
+          ],
+          "hidden" : false,
+          "image-name" : "483-4832574_transparent-steering-wheel-clipart-transparent-ship-wheel-png.png",
+          "name" : "483-4832574_transparent-steering-wheel-clipart-transparent-ship-wheel-png",
+          "position" : {
+            "scale" : 1.35,
+            "translation-in-points" : [
+              5.8046875,
+              207.359375
+            ]
+          }
+        },
+        {
+          "glass" : false,
+          "image-name" : "Retro-futuristic 3D grid landscape.png",
+          "name" : "Retro-futuristic 3D grid landscape",
+          "opacity-specializations" : [
+            {
+              "appearance" : "dark",
+              "value" : 0.5
+            },
+            {
+              "appearance" : "tinted",
+              "value" : 0.5
+            }
+          ]
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}

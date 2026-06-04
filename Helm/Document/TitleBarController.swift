@@ -1,0 +1,759 @@
+import Cocoa
+import Combine
+
+@MainActor
+protocol TitleBarDelegate: AnyObject
+{
+  func goBack()
+  func goForward()
+  func pushSelected()
+  func pullSelected()
+  func stashSelected()
+  func popStashSelected()
+  func applyStashSelected()
+  func dropStashSelected()
+  func search(for text: String,
+              type: HistorySearchType,
+              direction: SearchDirection)
+}
+
+@MainActor
+class TitleBarController: NSObject
+{
+  @IBOutlet weak var window: NSWindow!
+  @IBOutlet weak var navButtons: NSSegmentedControl!
+  @IBOutlet weak var remoteControls: NSSegmentedControl!
+  @IBOutlet weak var stashButton: NSSegmentedControl!
+  @IBOutlet weak var spinner: NSProgressIndicator!
+  var stashMenu: NSMenu!
+  var fetchMenu: NSMenu!
+  var pushMenu: NSMenu!
+  var pullMenu: NSMenu!
+  var remoteOpsMenu: NSMenu!
+  @IBOutlet var splitView: NSSplitView!
+
+  weak var delegate: (any TitleBarDelegate)?
+  
+  var progressSink: AnyCancellable?
+  
+  /// `true` when the Review (staging) panel is active.
+  var reviewActive = false {
+    didSet {
+      if reviewActive { hideSearch() }
+      updateContextualItems()
+    }
+  }
+
+  var separatorItem: NSToolbarItem?
+  private var stashToolbarItem: NSToolbarItem?
+  
+  private var newBranchToolbarItem: NSToolbarItem?
+  private var customActionToolbarItem: NSToolbarItem?
+  private var codingAgentToolbarItem: NSMenuToolbarItem?
+  private var searchToolbarItem: NSSearchToolbarItem?
+  private var previousSearchItem: NSToolbarItem?
+  private var nextSearchItem: NSToolbarItem?
+  private var searchTypeItems: [NSMenuItem] = []
+  private var searchEnabled = true
+  private var searchText = ""
+  private var searchType: HistorySearchType = .summary {
+    didSet {
+      updateSearchTypeMenuState()
+      updateSearchPlaceholder()
+    }
+  }
+  
+  @objc dynamic var progressHidden: Bool
+  {
+    get
+    { spinner.isHidden }
+    set
+    {
+      spinner.isIndeterminate = true
+      spinner.isHidden = newValue
+      if newValue {
+        spinner.stopAnimation(nil)
+      }
+      else {
+        spinner.startAnimation(nil)
+      }
+    }
+  }
+  
+  enum NavSegment: Int
+  {
+    case back, forward
+  }
+  
+  enum RemoteSegment: Int
+  {
+    case pull, push
+  }
+  
+  @MainActor
+  override func awakeFromNib()
+  {
+    super.awakeFromNib()
+    makeMenus()
+  }
+
+  private func makeMenus()
+  {
+    fetchMenu = NSMenu {
+      NSMenuItem(.fetchAllRemotes,
+                 action: #selector(HelmWindowController.fetchAllRemotes(_:)))
+      NSMenuItem(.fetchCurrentUnavailable,
+                 action: #selector(HelmWindowController.fetchCurrentBranch(_:)))
+      NSMenuItem.separator()
+        .with(identifier: HelmWindowController.RemoteMenuType.fetch.identifier)
+      NSMenuItem(.fetchRemote("unknown"),
+                 action: #selector(HelmWindowController.fetchRemote(_:)))
+    }
+    fetchMenu.setAccessibilityIdentifier(AXID.PopupMenu.fetch)
+    pullMenu = NSMenu {
+      NSMenuItem(.pull,
+                 action: #selector(HelmWindowController.pullCurrentBranch(_:)))
+    }
+    pullMenu.setAccessibilityIdentifier(AXID.PopupMenu.pull)
+    pushMenu = NSMenu {
+      NSMenuItem(.pushNew,
+                 action: #selector(HelmWindowController.push(_:)))
+      NSMenuItem.separator()
+        .with(identifier: HelmWindowController.RemoteMenuType.push.identifier)
+      NSMenuItem(.pushToRemote,
+                 action: #selector(HelmWindowController.pushToRemote(_:)))
+    }
+    pushMenu.setAccessibilityIdentifier(AXID.PopupMenu.push)
+    stashMenu = NSMenu {
+      NSMenuItem(.saveStash,
+                 systemImage: "tray.and.arrow.down.fill",
+                 action: #selector(HelmWindowController.stash(_:)))
+      NSMenuItem.separator()
+      NSMenuItem(.pop,
+                 systemImage: "tray.and.arrow.up.fill",
+                 action: #selector(HelmWindowController.popStash(_:)))
+      NSMenuItem(.apply,
+                 systemImage: "tray.and.arrow.up",
+                 action: #selector(HelmWindowController.applyStash(_:)))
+      NSMenuItem(.drop,
+                  systemImage: "trash",
+                 action: #selector(HelmWindowController.dropStash(_:)))
+    }
+    remoteOpsMenu = NSMenu {
+      NSMenuItem(.pull,
+                 systemImage: "square.and.arrow.down.fill",
+                 action: #selector(HelmWindowController.pull(_:)))
+      NSMenuItem(.push,
+                 systemImage: "square.and.arrow.up.fill",
+                 action: #selector(HelmWindowController.push(_:)))
+    }
+    guard let controller = window.windowController as? HelmWindowController
+    else {
+      assertionFailure("can't get window controller")
+      return
+    }
+    let menus = [pullMenu, pushMenu,
+                 stashMenu, remoteOpsMenu]
+
+    for menu in menus {
+      menu?.delegate = controller
+    }
+  }
+  
+  func finishSetup()
+  {
+    remoteOpsMenu.items[0].submenu = pullMenu
+    remoteOpsMenu.items[1].submenu = pushMenu
+    updateSearchControls()
+  }
+  
+  func observe(controller: any RepositoryController)
+  {
+    progressSink = controller.progressPublisher
+      .receive(on: DispatchQueue.main)
+      .sink {
+        (progress, total) in
+        
+        if progress < total {
+          self.spinner.isIndeterminate = false
+          self.spinner.startAnimation(nil)
+          self.spinner.maxValue = Double(total)
+          self.spinner.doubleValue = Double(progress)
+          self.spinner.needsDisplay = true
+        }
+        else {
+          self.spinner.stopAnimation(nil)
+          self.spinner.isHidden = true
+        }
+    }
+  }
+
+  @IBAction
+  func navigate(_ sender: Any?)
+  {
+    guard let control = sender as? NSSegmentedControl,
+          let segment = NavSegment(rawValue: control.selectedSegment)
+    else { return }
+    
+    switch segment {
+      case .back:
+        delegate?.goBack()
+      case .forward:
+        delegate?.goForward()
+    }
+  }
+  
+  @IBAction
+  func remoteAction(_ sender: Any?)
+  {
+    guard let control = sender as? NSSegmentedControl,
+          let segment = RemoteSegment(rawValue: control.selectedSegment)
+    else { return }
+    
+    switch segment {
+      case .pull:
+        delegate?.pullSelected()
+      case .push:
+        delegate?.pushSelected()
+    }
+  }
+  
+  @IBAction
+  func stash(_ sender: Any)
+  {
+    delegate?.stashSelected()
+  }
+  
+  @IBAction
+  func popStash(_ sender: Any)
+  {
+    delegate?.popStashSelected()
+  }
+  
+  @IBAction
+  func applyStash(_ sender: Any)
+  {
+    delegate?.applyStashSelected()
+  }
+  
+  @IBAction
+  func dropStash(_ sender: Any)
+  {
+    delegate?.dropStashSelected()
+  }
+  
+  func setSearchEnabled(_ enabled: Bool)
+  {
+    searchEnabled = enabled
+    if !enabled {
+      hideSearch()
+    }
+    updateSearchControls()
+  }
+
+  func showSearch()
+  {
+    guard searchEnabled, !reviewActive
+    else { return }
+
+    searchToolbarItem?.beginSearchInteraction()
+    if let item = searchToolbarItem {
+      window.makeFirstResponder(item.searchField)
+    }
+    updateSearchControls()
+  }
+
+  func search(_ direction: SearchDirection)
+  {
+    guard searchEnabled
+    else { return }
+
+    guard !searchText.isEmpty
+    else { return }
+    delegate?.search(for: searchText,
+                     type: searchType,
+                     direction: direction)
+  }
+
+  func useSelectionForSearch(_ text: String)
+  {
+    guard let field = searchToolbarItem?.searchField,
+          searchEnabled
+    else { return }
+
+    showSearch()
+    searchText = text
+    field.stringValue = text
+    updateSearchControls()
+  }
+
+  var canShowSearch: Bool
+  { searchEnabled && !reviewActive }
+
+  var canNavigateSearch: Bool
+  { searchEnabled && !searchText.isEmpty }
+
+  /// Enables/disables stash, clean, and search items based on
+  /// whether the Review panel or the History panel is active.
+  private func updateContextualItems()
+  {
+    stashToolbarItem?.isEnabled = reviewActive
+    newBranchToolbarItem?.isEnabled = !reviewActive
+
+    let searchOK = searchEnabled && !reviewActive
+    let hasQuery = !searchText.isEmpty
+
+    searchToolbarItem?.isEnabled = searchOK
+    previousSearchItem?.isEnabled = searchOK && hasQuery
+    nextSearchItem?.isEnabled = searchOK && hasQuery
+  }
+
+  private func updateSearchControls()
+  {
+    updateContextualItems()
+  }
+
+  private func updateSearchTypeMenuState()
+  {
+    for (index, item) in searchTypeItems.enumerated() {
+      item.state = HistorySearchType.allCases[index] == searchType ? .on : .off
+    }
+  }
+
+  private func updateSearchPlaceholder()
+  {
+    searchToolbarItem?.searchField.placeholderString =
+      "Search \(searchType.displayName.rawValue)"
+  }
+
+  private func hideSearch()
+  {
+    searchText = ""
+    searchToolbarItem?.endSearchInteraction()
+    searchToolbarItem?.searchField.stringValue = ""
+    updateSearchControls()
+  }
+
+  private func makeSearchMenu() -> NSMenu
+  {
+    let menu = NSMenu()
+
+    searchTypeItems = []
+    menu.autoenablesItems = false
+    for (index, type) in HistorySearchType.allCases.enumerated() {
+      let item = NSMenuItem(title: type.displayName.rawValue,
+                            action: #selector(selectSearchType(_:)),
+                            keyEquivalent: "")
+
+      item.target = self
+      item.tag = index
+      menu.addItem(item)
+      searchTypeItems.append(item)
+    }
+    updateSearchTypeMenuState()
+    return menu
+  }
+
+  @IBAction
+  private func runSearch(_ sender: NSSearchField)
+  {
+    searchText = sender.stringValue
+    search(.down)
+  }
+
+  @IBAction
+  private func selectSearchType(_ sender: NSMenuItem)
+  {
+    guard HistorySearchType.allCases.indices.contains(sender.tag)
+    else { return }
+    searchType = HistorySearchType.allCases[sender.tag]
+  }
+
+  @IBAction
+  private func searchPrevious(_ sender: Any?)
+  {
+    search(.up)
+  }
+
+  @IBAction
+  private func searchNext(_ sender: Any?)
+  {
+    search(.down)
+  }
+}
+
+extension TitleBarController
+{
+  func updateCustomActionButton(repoPath: String)
+  {
+    guard let item = customActionToolbarItem
+              as? NSMenuToolbarItem
+    else { return }
+
+    let actions = CustomActionsStore.actions(for: repoPath)
+
+    if let first = actions.first {
+      item.image = NSImage(
+          systemSymbolName: first.symbolName,
+          accessibilityDescription: first.name)
+          ?? NSImage(
+              systemSymbolName: "terminal",
+              accessibilityDescription: "Actions")
+      item.label = first.name
+      item.toolTip = first.name
+    }
+    else {
+      item.image = NSImage(
+          systemSymbolName: "terminal",
+          accessibilityDescription: "Actions")
+      item.label = "Actions"
+      item.toolTip = "Custom Actions"
+    }
+
+    let menu = NSMenu()
+
+    for (index, action) in actions.enumerated() {
+      let menuItem = NSMenuItem(
+          title: action.name,
+          action: #selector(
+              HelmWindowController.runCustomAction(_:)),
+          keyEquivalent: "")
+
+      menuItem.tag = index
+      menuItem.image = NSImage(
+          systemSymbolName: action.symbolName,
+          accessibilityDescription: action.name)
+      menu.addItem(menuItem)
+    }
+
+    if !actions.isEmpty {
+      menu.addItem(.separator())
+    }
+
+    let configItem = NSMenuItem(
+        title: actions.isEmpty
+            ? "+ Add Action…" : "Edit Actions…",
+        action: #selector(
+            HelmWindowController.configureActions(_:)),
+        keyEquivalent: "")
+
+    menu.addItem(configItem)
+    item.menu = menu
+  }
+}
+
+extension NSToolbarItem.Identifier
+{
+  static let navigation: Self = ◊"helm.nav"
+  static let spinner: Self = ◊"helm.spinner"
+  static let remoteOps: Self = ◊"helm.remote"
+  static let stash: Self = ◊"helm.stash"
+  static let search: Self = ◊"helm.search"
+  static let searchPrevious: Self = ◊"helm.searchPrevious"
+  static let searchNext: Self = ◊"helm.searchNext"
+  
+  static let newBranch: Self = ◊"helm.newBranch"
+  static let customAction: Self = ◊"helm.customAction"
+  static let codingAgent: Self = ◊"helm.codingAgent"
+  static let view: Self = ◊"helm.view"
+}
+
+extension TitleBarController: NSToolbarDelegate
+{
+  func toolbar(_ toolbar: NSToolbar,
+               itemForItemIdentifier itemIdentifier: NSToolbarItem.Identifier,
+               willBeInsertedIntoToolbar flag: Bool) -> NSToolbarItem?
+  {
+    if itemIdentifier == .sidebarTrackingSeparator {
+      // Return the saved item to avoid Cocoa throwing exceptions about only
+      // one tracking item being allowed.
+      return separatorItem
+    }
+    if itemIdentifier == .newBranch {
+      let item = NSToolbarItem(itemIdentifier: .newBranch)
+
+      item.label = "New Branch"
+      item.paletteLabel = "New Branch"
+      item.toolTip = "New Branch"
+      item.image = NSImage(
+          systemSymbolName: "arrow.triangle.branch",
+          accessibilityDescription: "New Branch")
+      item.isBordered = true
+      item.target = nil
+      item.action = #selector(
+          HelmWindowController.newBranch(_:))
+      return item
+    }
+    if itemIdentifier == .customAction {
+      let item = NSMenuToolbarItem(
+          itemIdentifier: .customAction)
+
+      item.label = "Actions"
+      item.paletteLabel = "Actions"
+      item.toolTip = "Custom Actions"
+      item.image = NSImage(
+          systemSymbolName: "terminal",
+          accessibilityDescription: "Actions")
+      item.isBordered = true
+      item.showsIndicator = true
+      item.menu = NSMenu()
+      item.target = nil
+      item.action = #selector(
+          HelmWindowController.runDefaultAction(_:))
+      return item
+    }
+    if itemIdentifier == .codingAgent {
+      let item = NSMenuToolbarItem(
+          itemIdentifier: .codingAgent)
+
+      item.isBordered = true
+      item.showsIndicator = true
+      item.target = self
+      item.action = #selector(showCodingAgentMenu(_:))
+      updateCodingAgentItem(item)
+      return item
+    }
+    return nil
+  }
+  
+  func toolbarWillAddItem(_ notification: Notification)
+  {
+    guard let item = notification.userInfo?["item"] as? NSToolbarItem
+    else { return }
+
+    if fetchMenu == nil {
+      makeMenus()
+    }
+    
+    switch item.itemIdentifier {
+      case .navigation:
+        navButtons = item.view as? NSSegmentedControl
+        
+      case .spinner:
+        spinner = item.view as? NSProgressIndicator
+        
+      case .remoteOps:
+        remoteControls = item.view as? NSSegmentedControl
+
+        let menuItem = NSMenuItem(title: item.label, action: nil,
+                                  keyEquivalent: "")
+
+        menuItem.submenu = remoteOpsMenu
+        item.menuFormRepresentation = menuItem
+
+        let segmentMenus: [(NSMenu, TitleBarController.RemoteSegment)] = [
+              (pullMenu, .pull),
+              (pushMenu, .push)]
+
+        for (menu, segment) in segmentMenus {
+          remoteControls.setMenu(menu, forSegment: segment.rawValue)
+        }
+
+      case .stash:
+        stashButton = item.view as? NSSegmentedControl
+        stashToolbarItem = item
+        stashButton.setMenu(stashMenu, forSegment: 0)
+
+      case .newBranch:
+        newBranchToolbarItem = item
+
+      case .customAction:
+        customActionToolbarItem = item
+
+      case .codingAgent:
+        codingAgentToolbarItem = item as? NSMenuToolbarItem
+
+      case .sidebarTrackingSeparator:
+        separatorItem = item
+      
+      case .search:
+        guard let searchItem = item as? NSSearchToolbarItem
+        else { break }
+        let field = searchItem.searchField
+
+        searchToolbarItem = searchItem
+        searchItem.resignsFirstResponderWithCancel = true
+        field.searchMenuTemplate = makeSearchMenu()
+        field.setAccessibilityIdentifier(.Search.field)
+        updateSearchPlaceholder()
+
+      case .searchPrevious:
+        previousSearchItem = item
+      
+      case .searchNext:
+        nextSearchItem = item
+        
+      default:
+        return
+    }
+  }
+}
+
+extension TitleBarController
+{
+  private var activeWindowController: HelmWindowController?
+  {
+    (window?.tabGroup?.selectedWindow?.windowController
+     ?? window?.windowController) as? HelmWindowController
+  }
+
+  private var repoConfig: (any Config)?
+  {
+    activeWindowController?.repoDocument?.repository?.config
+  }
+
+  private var currentCodingAgent: CodingAgent
+  {
+    repoConfig?.codingAgent ?? UserDefaults.helm.codingAgent
+  }
+
+  private func updateCodingAgentItem(_ item: NSMenuToolbarItem)
+  {
+    let agent = currentCodingAgent
+    item.image = agent.image
+    item.label = agent.displayName
+    item.paletteLabel = "Coding Agent"
+    item.toolTip = "Coding Agent: \(agent.displayName)"
+    item.menu = makeCodingAgentMenu()
+  }
+
+  func refreshCodingAgentItem()
+  {
+    if let item = codingAgentToolbarItem {
+      updateCodingAgentItem(item)
+    }
+  }
+
+  private func makeCodingAgentMenu() -> NSMenu
+  {
+    let menu = NSMenu()
+
+    for (index, agent) in CodingAgent.allCases.enumerated() {
+      let item = NSMenuItem(
+          title: agent.displayName,
+          action: #selector(selectCodingAgent(_:)),
+          keyEquivalent: "")
+
+      item.target = self
+      item.tag = index
+      item.image = agent.image
+      item.state = agent == currentCodingAgent ? .on : .off
+      menu.addItem(item)
+    }
+    return menu
+  }
+
+  @objc
+  private func showCodingAgentMenu(_ sender: Any?)
+  {
+    // NSMenuToolbarItem displays the menu automatically; this action
+    // is a fallback for accessibility or keyboard invocation.
+  }
+
+  @objc
+  private func selectCodingAgent(_ sender: NSMenuItem)
+  {
+    guard CodingAgent.allCases.indices.contains(sender.tag)
+    else { return }
+    let agent = CodingAgent.allCases[sender.tag]
+    guard agent != currentCodingAgent
+    else { return }
+
+    guard let window = window
+    else { return }
+
+    NSAlert.confirm(
+        message: ›"Switch to \(agent.displayName)?",
+        infoString: ›"The current terminal session will be terminated and restarted with \(agent.displayName).",
+        actionName: ›"Switch",
+        parentWindow: window) { [weak self] in
+      let targetController = self?.activeWindowController
+
+      if let config = targetController?.repoDocument?.repository?.config {
+        config.codingAgent = agent
+      }
+      else {
+        UserDefaults.helm.codingAgent = agent
+      }
+      if let item = self?.codingAgentToolbarItem {
+        self?.updateCodingAgentItem(item)
+      }
+      targetController?.restartTerminal(with: agent)
+    }
+  }
+}
+
+extension TitleBarController: NSMenuItemValidation
+{
+  func validateMenuItem(_ menuItem: NSMenuItem) -> Bool
+  {
+    switch menuItem.action {
+      case #selector(selectSearchType(_:)),
+           #selector(selectCodingAgent(_:)):
+        return true
+      default:
+        return false
+    }
+  }
+}
+
+extension TitleBarController: NSToolbarItemValidation
+{
+  func validateToolbarItem(_ item: NSToolbarItem) -> Bool
+  {
+    switch item.itemIdentifier {
+      case .stash:
+        return reviewActive
+      case .search:
+        return searchEnabled && !reviewActive
+      case .searchPrevious, .searchNext:
+        return searchEnabled && !reviewActive
+            && !searchText.isEmpty
+      default:
+        return true
+    }
+  }
+}
+
+extension TitleBarController: NSSearchFieldDelegate
+{
+  func controlTextDidChange(_ obj: Notification)
+  {
+    if let field = obj.object as? NSSearchField {
+      searchText = field.stringValue
+    }
+    updateSearchControls()
+  }
+
+  func controlTextDidBeginEditing(_ obj: Notification)
+  {
+    updateSearchControls()
+  }
+
+  func controlTextDidEndEditing(_ obj: Notification)
+  {
+    guard let field = obj.object as? NSSearchField
+    else { return }
+    if field.stringValue.isEmpty {
+      searchText = ""
+      hideSearch()
+    }
+    else {
+      searchText = field.stringValue
+    }
+    updateSearchControls()
+  }
+
+  func searchFieldDidStartSearching(_ sender: NSSearchField)
+  {
+    searchText = sender.stringValue
+    updateSearchControls()
+  }
+
+  func searchFieldDidEndSearching(_ sender: NSSearchField)
+  {
+    searchText = ""
+    sender.stringValue = ""
+    updateSearchControls()
+  }
+}

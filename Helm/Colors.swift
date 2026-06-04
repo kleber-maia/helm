@@ -1,0 +1,169 @@
+import Cocoa
+
+extension NSColor
+{
+  /// Returns `.black` or `.white` depending on which has better
+  /// contrast against this color.
+  var contrastingTextColor: NSColor
+  {
+    if let rgb = usingColorSpace(.sRGB) {
+      let luminance = rgb.redComponent * 0.299 +
+                      rgb.greenComponent * 0.587 +
+                      rgb.blueComponent * 0.114
+
+      return luminance > 0.5 ? .black : .white
+    }
+
+    // Fallback: resolve via CGColor components
+    if let components = cgColor.converted(
+           to: CGColorSpaceCreateDeviceRGB(),
+           intent: .defaultIntent, options: nil)?
+           .components,
+       components.count >= 3 {
+      let luminance = components[0] * 0.299 +
+                      components[1] * 0.587 +
+                      components[2] * 0.114
+
+      return luminance > 0.5 ? .black : .white
+    }
+    return .white
+  }
+
+  enum RefTokenStroke
+  {
+    case branch, remoteBranch, tag, generic, shine
+  }
+  
+  static func refTokenStroke(_ type: RefTokenStroke) -> NSColor
+  {
+    switch type {
+      case .branch:
+        return NSColor(named: "branchStroke")!
+      case .remoteBranch:
+        return NSColor(named: "remoteBranchStroke")!
+      case .tag:
+        return NSColor(named: "tagStroke")!
+      case .generic:
+        return NSColor(named: "refStroke")!
+      case .shine:
+        return NSColor(named: "refShine")!
+    }
+  }
+  
+  enum RefTokenText
+  {
+    case active, activeEmboss, normal, normalEmboss
+  }
+  
+  static func refTokenText(_ type: RefTokenText) -> NSColor
+  {
+    switch type {
+      case .active:
+        return NSColor(named: "refActiveText")!
+      case .activeEmboss:
+        return NSColor(named: "refActiveTextEmboss")!
+      case .normal:
+        return NSColor(named: "refText")!
+      case .normalEmboss:
+        return NSColor(named: "refTextEmboss")!
+    }
+  }
+  
+  enum RefGradient
+  {
+    case branch, activeBranch, remote, tag, general
+  }
+  
+  static func refGradientStart(_ type: RefGradient) -> NSColor
+  {
+    switch type {
+      case .branch:
+        return NSColor(named: "branchGradientStart")!
+      case .activeBranch:
+        return NSColor(named: "activeBranchGradientStart")!
+      case .remote:
+        return NSColor(named: "remoteGradientStart")!
+      case .tag:
+        return NSColor(named: "tagGradientStart")!
+      case .general:
+        return NSColor(named: "refGradientStart")!
+    }
+  }
+  
+  static func refGradientEnd(_ type: RefGradient) -> NSColor
+  {
+    switch type {
+      case .branch:
+        return NSColor(named: "branchGradientEnd")!
+      case .activeBranch:
+        return NSColor(named: "activeBranchGradientEnd")!
+      case .remote:
+        return NSColor(named: "remoteGradientEnd")!
+      case .tag:
+        return NSColor(named: "tagGradientEnd")!
+      case .general:
+        return NSColor(named: "refGradientEnd")!
+    }
+  }
+}
+
+extension RefType
+{
+  var strokeColor: NSColor
+  {
+    switch self {
+      case .branch, .activeBranch:
+        .refTokenStroke(.branch)
+      case .remoteBranch:
+        .refTokenStroke(.remoteBranch)
+      case .tag:
+        .refTokenStroke(.tag)
+      default:
+        .refTokenStroke(.generic)
+    }
+  }
+  
+  var gradient: NSGradient
+  {
+    let type: NSColor.RefGradient
+    
+    switch self {
+      case .branch:
+        type = .branch
+      case .activeBranch:
+        type = .activeBranch
+      case .remoteBranch:
+        type = .remote
+      case .tag:
+        type = .tag
+      default:
+        type = .general
+    }
+    return NSGradient(starting: NSColor.refGradientStart(type),
+                      ending: NSColor.refGradientEnd(type)) ?? NSGradient()
+  }
+
+  var surfaceColor: NSColor
+  {
+    let gradientType: NSColor.RefGradient
+
+    switch self {
+      case .branch:
+        gradientType = .branch
+      case .activeBranch:
+        gradientType = .activeBranch
+      case .remoteBranch:
+        gradientType = .remote
+      case .tag:
+        gradientType = .tag
+      default:
+        gradientType = .general
+    }
+    let start = NSColor.refGradientStart(gradientType)
+    let end = NSColor.refGradientEnd(gradientType)
+    let mixed = start.blended(withFraction: 0.45, of: end) ?? start
+    let alpha = LiquidGlassAccessibility.shouldIncreaseContrast ? 0.92 : 0.72
+
+    return mixed.withAlphaComponent(alpha)
+  }
+}

@@ -1,0 +1,55 @@
+disabled_rules:
+    - trailing_whitespace # tws is allowed, especially matching surrounding indent
+    - opening_brace # Opening braces get their own line for func, class, etc.
+    - closure_parameter_position # Closure parameters get their own line
+    - force_cast # "as!" has legitimate uses
+    - vertical_whitespace # 2 lines allowable between top-level classes
+    - discarded_notification_center_observer # Bug: swiftlint assumes addObserver is being called on NotificationCenter
+    - type_name # Short type names are allowed for generics
+    - identifier_name # Single-letter names can be OK
+    - trailing_comma # Trailing commas make it easier to add entries
+    - todo # TODOs are handled separately
+    - private_over_fileprivate
+    - empty_parentheses_with_trailing_closure
+    - implicit_optional_initialization # Why are only `var` optionals implicitly initialized?
+    - multiple_closures_with_trailing_closure
+    - implicit_getter # too many false positives as of 0.53.0
+    - conditional_returns_on_newline
+opt_in_rules:
+    - anyobject_protocol
+    - closure_spacing
+    - contains_over_filter_count
+    - contains_over_filter_is_empty
+    - contains_over_first_not_nil
+    - convenience_type
+    - empty_count
+    - empty_string
+    - empty_parameters
+    - implicit_return
+    - let_var_whitespace
+    - yoda_condition
+included:
+    - Helm
+    
+force_try:
+    severity: warning # Fine for cases like loading resources
+file_length:
+    warning: 500
+implicit_return:
+    included: [closure, getter]
+line_length: 83 # Preferably 80, with some flexibility
+type_body_length: 500
+nesting:
+    type_level:
+        warning: 3
+large_tuple:
+    warning: 5
+    error: 8
+function_body_length: 60
+statement_position:
+    statement_mode: uncuddled_else
+cyclomatic_complexity:
+    ignores_case_statements: true
+switch_case_alignment:
+    indented_cases: true
+

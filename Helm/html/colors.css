@@ -1,0 +1,25 @@
+:root {
+    --addBackground: #D4EED4;
+    --addText: #006800;
+    --deleteText: #880000;
+    --background: #F8F8F8;
+    --blameBorder: white;
+    --buttonActiveBorder: #AAA;
+    --buttonActiveGrad1: #EEE;
+    --buttonActiveGrad2: #DDD;
+    --buttonBorder: #BBB;
+    --buttonGrad1: #FFF;
+    --buttonGrad2: #EEE;
+    --deleteBackground: #FDD;
+    --divider: lightgray;
+    --heading: #EEE;
+    --hunkBottomBorder: #BBB;
+    --hunkTopBorder: #DDD;
+    --jumpActive: white;
+    --jumpHoverBackground: rgba(255, 255, 255, 0.5);
+    --leftBackground: #EEE;
+    --lineNumberColor: #888888;
+    --shadow: lightgray;
+    --textColor: black
+}
+

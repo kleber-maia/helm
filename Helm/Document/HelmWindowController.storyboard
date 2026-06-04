@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.Storyboard.XIB" version="3.0" toolsVersion="24506" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" initialViewController="l6G-3P-2hY">
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="24506"/>
+        <capability name="Search Toolbar Item" minToolsVersion="12.0" minSystemVersion="11.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <scenes>
+        <!--Window Controller-->
+        <scene sceneID="QSP-Vw-kJW">
+            <objects>
+                <windowController id="l6G-3P-2hY" customClass="HelmWindowController" customModule="Helm" customModuleProvider="target" sceneMemberID="viewController">
+                    <window key="window" title="Window" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" visibleAtLaunch="NO" frameAutosaveName="HelmDocument" animationBehavior="default" tabbingIdentifier="repo" toolbarStyle="unified" id="czE-Rb-YiB">
+                        <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES" fullSizeContentView="YES"/>
+                        <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
+                        <rect key="contentRect" x="355" y="584" width="1040" height="776"/>
+                        <rect key="screenRect" x="0.0" y="0.0" width="1920" height="1175"/>
+                        <value key="minSize" type="size" width="500" height="200"/>
+                        <toolbar key="toolbar" implicitIdentifier="8384A139-F455-42BA-8746-9551A7ED1534" autosavesConfiguration="NO" allowsUserCustomization="NO" showsBaselineSeparator="NO" displayMode="iconOnly" sizeMode="regular" id="NlX-Va-CMz">
+                            <allowedToolbarItems>
+                                <toolbarItem implicitItemIdentifier="22A022DE-8725-401D-8643-56B32D05A6D8" explicitItemIdentifier="helm.nav" label="Navigation" paletteLabel="Navigation" visibilityPriority="1" sizingBehavior="auto" navigational="YES" id="AIh-IS-Ifn">
+                                    <nil key="toolTip"/>
+                                    <segmentedControl key="view" verticalHuggingPriority="750" id="nQU-i2-YYo">
+                                        <rect key="frame" x="0.0" y="14" width="65" height="24"/>
+                                        <autoresizingMask key="autoresizingMask"/>
+                                        <segmentedCell key="cell" borderStyle="border" alignment="left" style="texturedSquare" trackingMode="momentary" id="Dbh-z0-eg3">
+                                            <font key="font" metaFont="system"/>
+                                            <segments>
+                                                <segment image="NSLeftFacingTriangleTemplate" width="32"/>
+                                                <segment toolTip="Forward" image="NSGoRightTemplate" width="32" tag="1"/>
+                                            </segments>
+                                        </segmentedCell>
+                                        <connections>
+                                            <action selector="navigate:" target="uko-xc-GwC" id="L5d-sP-TBY"/>
+                                        </connections>
+                                    </segmentedControl>
+                                </toolbarItem>
+                                <toolbarItem implicitItemIdentifier="937E3C05-73FC-476A-9185-2B0916201849" explicitItemIdentifier="helm.remote" label="Remote Operations" paletteLabel="Remote Operations" sizingBehavior="auto" id="HjO-mu-IiC">
+                                    <nil key="toolTip"/>
+                                    <segmentedControl key="view" verticalHuggingPriority="750" id="tJj-QJ-vNA">
+                                        <rect key="frame" x="5" y="14" width="65" height="24"/>
+                                        <autoresizingMask key="autoresizingMask"/>
+                                        <segmentedCell key="cell" borderStyle="border" alignment="left" style="texturedSquare" trackingMode="momentary" id="kkS-1W-s9h">
+                                            <font key="font" metaFont="system"/>
+                                            <segments>
+                                                <segment toolTip="Pull" image="square.and.arrow.down.fill" catalog="system" width="32"/>
+                                                <segment toolTip="Push" image="square.and.arrow.up.fill" catalog="system" width="32" tag="1"/>
+                                            </segments>
+                                        </segmentedCell>
+                                        <accessibility identifier="remoteOps"/>
+                                        <connections>
+                                            <action selector="remoteAction:" target="uko-xc-GwC" id="AWX-Wo-BYQ"/>
+                                        </connections>
+                                    </segmentedControl>
+                                </toolbarItem>
+                                <toolbarItem implicitItemIdentifier="4798E31C-C1B2-4D7F-AE28-6D09132E2284" explicitItemIdentifier="helm.stash" label="Stash" paletteLabel="Stash" sizingBehavior="auto" id="BqU-7i-BMT">
+                                    <nil key="toolTip"/>
+                                    <segmentedControl key="view" verticalHuggingPriority="750" id="4bM-EU-W6d">
+                                        <rect key="frame" x="3" y="14" width="32" height="24"/>
+                                        <autoresizingMask key="autoresizingMask"/>
+                                        <segmentedCell key="cell" borderStyle="border" alignment="left" style="texturedSquare" trackingMode="momentary" id="pPh-La-Jyh">
+                                            <font key="font" metaFont="system"/>
+                                            <segments>
+                                                <segment toolTip="Stash" image="tray.fill" catalog="system" width="32"/>
+                                            </segments>
+                                        </segmentedCell>
+                                        <accessibility identifier="helm.stash"/>
+                                        <connections>
+                                            <action selector="stash:" target="uko-xc-GwC" id="5nA-Fh-COj"/>
+                                        </connections>
+                                    </segmentedControl>
+                                </toolbarItem>
+                                <toolbarItem implicitItemIdentifier="NSToolbarFlexibleSpaceItem" id="oLO-yb-35r"/>
+                                <toolbarItem implicitItemIdentifier="08D5CE15-0F1D-4BCB-AE97-290258920447" explicitItemIdentifier="helm.spinner" label="" paletteLabel="Spinner" tag="-1" sizingBehavior="auto" id="AXd-Bz-cV9">
+                                    <nil key="toolTip"/>
+                                    <progressIndicator key="view" wantsLayer="YES" maxValue="100" indeterminate="YES" controlSize="small" style="spinning" id="crc-3R-3u9">
+                                        <rect key="frame" x="16" y="14" width="16" height="16"/>
+                                        <autoresizingMask key="autoresizingMask"/>
+                                        <accessibility identifier="progress"/>
+                                    </progressIndicator>
+                                </toolbarItem>
+                                <toolbarItem implicitItemIdentifier="293D5F15-AAC0-4597-80FB-FF420A1A59DB" explicitItemIdentifier="NSToolbarSidebarTrackingSeparatorItemIdentifier" label="SBSplit" paletteLabel="SBSplit" tag="-1" bordered="YES" sizingBehavior="auto" id="f20-3I-3ft"/>
+                                <toolbarItem implicitItemIdentifier="NSToolbarSpaceItem" id="a3N-zr-oA8"/>
+                                <toolbarItem implicitItemIdentifier="E38854F7-5296-4E09-856B-51022576D4A3" explicitItemIdentifier="helm.searchPrevious" label="Previous" paletteLabel="Previous" tag="-1" image="chevron.up" catalog="system" bordered="YES" sizingBehavior="auto" id="GBo-B7-LWd">
+                                    <connections>
+                                        <action selector="searchPrevious:" target="uko-xc-GwC" id="RVZ-in-pvA"/>
+                                    </connections>
+                                </toolbarItem>
+                                <toolbarItem implicitItemIdentifier="C19595DB-D27E-4185-A16D-C30981EE7B3A" explicitItemIdentifier="helm.searchNext" label="Next" paletteLabel="Next" tag="-1" image="chevron.down" catalog="system" bordered="YES" sizingBehavior="auto" id="016-h5-v7w">
+                                    <connections>
+                                        <action selector="searchNext:" target="uko-xc-GwC" id="cYp-HZ-Anm"/>
+                                    </connections>
+                                </toolbarItem>
+                                <searchToolbarItem implicitItemIdentifier="21EC8C13-1E23-4ABF-A18C-780F0E1FDD84" explicitItemIdentifier="helm.search" label="Search" paletteLabel="Search" bordered="YES" visibilityPriority="1001" id="M1f-wH-9UY">
+                                    <nil key="toolTip"/>
+                                    <searchField key="view" focusRingType="none" verticalHuggingPriority="750" textCompletion="NO" id="IE9-ZV-Fpt">
+                                        <rect key="frame" x="0.0" y="0.0" width="94" height="24"/>
+                                        <autoresizingMask key="autoresizingMask"/>
+                                        <searchFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" usesSingleLineMode="YES" bezelStyle="round" sendsWholeSearchString="YES" id="V8h-Tq-K1t">
+                                            <font key="font" usesAppearanceFont="YES"/>
+                                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                        </searchFieldCell>
+                                        <connections>
+                                            <action selector="runSearch:" target="uko-xc-GwC" id="ABc-Uc-tMv"/>
+                                            <outlet property="delegate" destination="uko-xc-GwC" id="btU-GY-au9"/>
+                                        </connections>
+                                    </searchField>
+                                </searchToolbarItem>
+                            </allowedToolbarItems>
+                            <defaultToolbarItems>
+                                <toolbarItem reference="f20-3I-3ft"/>
+                                <toolbarItem reference="AIh-IS-Ifn"/>
+                                <toolbarItem reference="HjO-mu-IiC"/>
+                                <toolbarItem reference="BqU-7i-BMT"/>
+                                <toolbarItem reference="oLO-yb-35r"/>
+                                <toolbarItem reference="AXd-Bz-cV9"/>
+                                <toolbarItem reference="GBo-B7-LWd"/>
+                                <toolbarItem reference="016-h5-v7w"/>
+                                <searchToolbarItem reference="M1f-wH-9UY"/>
+                            </defaultToolbarItems>
+                            <connections>
+                                <outlet property="delegate" destination="uko-xc-GwC" id="lGv-3Z-22m"/>
+                            </connections>
+                        </toolbar>
+                        <accessibility identifier="repoWindow"/>
+                        <connections>
+                            <outlet property="delegate" destination="l6G-3P-2hY" id="GGr-Zk-Wb4"/>
+                        </connections>
+                    </window>
+                    <connections>
+                        <outlet property="titleBarController" destination="uko-xc-GwC" id="NPG-OP-818"/>
+                        <segue destination="lX6-3b-XD9" kind="relationship" relationship="window.shadowedContentViewController" id="0lp-Ba-bvA"/>
+                    </connections>
+                </windowController>
+                <customObject id="2em-8b-shT" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
+                <customObject id="uko-xc-GwC" customClass="TitleBarController" customModule="Helm" customModuleProvider="target">
+                    <connections>
+                        <outlet property="window" destination="czE-Rb-YiB" id="bTP-lf-Tjb"/>
+                    </connections>
+                </customObject>
+            </objects>
+            <point key="canvasLocation" x="273" y="-152"/>
+        </scene>
+        <!--Split View Controller-->
+        <scene sceneID="dcr-uM-WC1">
+            <objects>
+                <splitViewController id="lX6-3b-XD9" customClass="MainSplitController" customModule="Helm" customModuleProvider="target" sceneMemberID="viewController">
+                    <splitViewItems>
+                        <splitViewItem holdingPriority="260" behavior="sidebar" id="CAg-9a-zJe"/>
+                        <splitViewItem id="9QK-ax-W8S"/>
+                    </splitViewItems>
+                    <splitView key="splitView" dividerStyle="thin" vertical="YES" id="wnX-w3-odJ">
+                        <rect key="frame" x="-142" y="0.0" width="908" height="300"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                        <connections>
+                            <outlet property="delegate" destination="lX6-3b-XD9" id="Fxh-om-iXH"/>
+                        </connections>
+                    </splitView>
+                    <connections>
+                        <outlet property="splitView" destination="wnX-w3-odJ" id="kdQ-PR-jca"/>
+                        <segue destination="pEv-JE-8no" kind="relationship" relationship="splitItems" id="f6T-MZ-p3K"/>
+                        <segue destination="h8Z-Mh-o6G" kind="relationship" relationship="splitItems" id="scp-XX-hs6"/>
+                    </connections>
+                </splitViewController>
+                <customObject id="uAr-iq-Dp7" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="207" y="527"/>
+        </scene>
+        <!--Sidebar Controller-->
+        <scene sceneID="Yce-1f-lrO">
+            <objects>
+                <viewController title="Sidebar" id="pEv-JE-8no" userLabel="Sidebar Controller" sceneMemberID="viewController">
+                    <view key="view" id="WdE-eB-CPt">
+                        <rect key="frame" x="0.0" y="0.0" width="329" height="654"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </view>
+                </viewController>
+                <customObject id="z1d-0w-duQ" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="-83" y="1175"/>
+        </scene>
+        <!--HistoryViewController-->
+        <scene sceneID="fYx-sq-TEa">
+            <objects>
+                <controllerPlaceholder storyboardName="HistoryViewController" id="h8Z-Mh-o6G" sceneMemberID="viewController"/>
+                <customObject id="XZd-0o-KM8" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="472" y="853"/>
+        </scene>
+    </scenes>
+    <resources>
+        <image name="NSGoRightTemplate" width="12" height="17"/>
+        <image name="NSLeftFacingTriangleTemplate" width="12" height="17"/>
+        <image name="bubbles.and.sparkles" catalog="system" width="17" height="15"/>
+        <image name="chevron.down" catalog="system" width="15" height="9"/>
+        <image name="chevron.up" catalog="system" width="15" height="9"/>
+        <image name="inset.filled.bottomthird.rectangle" catalog="system" width="18" height="14"/>
+        <image name="apple.terminal" catalog="system" width="17" height="15"/>
+        <image name="inset.filled.leftthird.rectangle" catalog="system" width="18" height="14"/>
+        <image name="inset.filled.topthird.rectangle" catalog="system" width="18" height="14"/>
+        <image name="square.and.arrow.down" catalog="system" width="15" height="17"/>
+        <image name="square.and.arrow.down.fill" catalog="system" width="15" height="16"/>
+        <image name="square.and.arrow.up.fill" catalog="system" width="15" height="17"/>
+        <image name="tray.fill" catalog="system" width="18" height="13"/>
+    </resources>
+</document>

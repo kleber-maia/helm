@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.Storyboard.XIB" version="3.0" toolsVersion="24506" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" initialViewController="WO3-rk-i7b">
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="24506"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <scenes>
+        <!--History Split Controller-->
+        <scene sceneID="bHv-Ay-wjP">
+            <objects>
+                <splitViewController id="WO3-rk-i7b" customClass="HistorySplitController" customModule="Helm" customModuleProvider="target" sceneMemberID="viewController">
+                    <splitViewItems>
+                        <splitViewItem canCollapse="YES" id="WoV-eg-mjZ"/>
+                    </splitViewItems>
+                    <splitView key="splitView" dividerStyle="thin" id="1gf-f8-xfq">
+                        <rect key="frame" x="0.0" y="0.0" width="450" height="300"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                        <connections>
+                            <outlet property="delegate" destination="WO3-rk-i7b" id="9d4-fr-Cwn"/>
+                        </connections>
+                    </splitView>
+                    <connections>
+                        <outlet property="splitView" destination="1gf-f8-xfq" id="iPe-k0-6ud"/>
+                        <segue destination="cJn-a9-5zt" kind="relationship" relationship="splitItems" id="3zQ-Qr-7ny"/>
+                    </connections>
+                </splitViewController>
+                <customObject id="7t0-ay-3cj" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="-358" y="-515"/>
+        </scene>
+        <!--History View Controller-->
+        <scene sceneID="naV-Aj-PEI">
+            <objects>
+                <viewController id="cJn-a9-5zt" customClass="HistoryViewController" customModule="Helm" customModuleProvider="target" sceneMemberID="viewController">
+                    <stackView key="view" distribution="fill" orientation="vertical" alignment="leading" spacing="0.0" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" detachesHiddenViews="YES" id="Z3M-i6-HUi">
+                        <rect key="frame" x="0.0" y="0.0" width="1305" height="301"/>
+                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                        <subviews>
+                            <scrollView identifier="history" borderType="none" autohidesScrollers="YES" horizontalLineScroll="19" horizontalPageScroll="10" verticalLineScroll="19" verticalPageScroll="10" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Cbb-eh-iLS">
+                                <rect key="frame" x="0.0" y="0.0" width="1285" height="301"/>
+                                <clipView key="contentView" id="uWU-i3-2X9">
+                                    <rect key="frame" x="0.0" y="0.0" width="1285" height="301"/>
+                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                    <subviews>
+                                        <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="noColumnAutoresizing" multipleSelection="NO" autosaveColumns="NO" headerView="0g9-O5-s8m" viewBased="YES" id="dvr-AT-5yL" customClass="HistoryTableView" customModule="Helm" customModuleProvider="target">
+                                            <rect key="frame" x="0.0" y="0.0" width="1285" height="276"/>
+                                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                            <size key="intercellSpacing" width="3" height="6"/>
+                                            <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="gridColor" name="gridColor" catalog="System" colorSpace="catalog"/>
+                                            <tableColumns>
+                                                <tableColumn identifier="refs" width="449" minWidth="10" maxWidth="3.4028234663852886e+38" id="iyT-As-zsn">
+                                                    <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" title="Refs">
+                                                        <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
+                                                        <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
+                                                    </tableHeaderCell>
+                                                    <textFieldCell key="dataCell" lineBreakMode="truncatingTail" selectable="YES" editable="YES" title="Text Cell" id="TxK-4m-a9a">
+                                                        <font key="font" metaFont="system"/>
+                                                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                        <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                    </textFieldCell>
+                                                    <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="NO"/>
+                                                    <prototypeCellViews>
+                                                        <tableCellView identifier="refs" id="5xz-wt-fD1" customClass="HistoryCellView" customModule="Helm" customModuleProvider="target">
+                                                            <rect key="frame" x="11" y="1" width="449" height="40"/>
+                                                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                            <subviews>
+                                                                <stackView distribution="fill" orientation="horizontal" alignment="top" spacing="4" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" horizontalClippingResistancePriority="750" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="F4j-hu-tEO">
+                                                                    <rect key="frame" x="0.0" y="24" width="92" height="16"/>
+                                                                    <subviews>
+                                                                        <textField focusRingType="none" horizontalHuggingPriority="750" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ftX-8o-Gix" customClass="ExpansionTextField" customModule="Helm" customModuleProvider="target">
+                                                                            <rect key="frame" x="-2" y="0.0" width="96" height="16"/>
+                                                                            <textFieldCell key="cell" lineBreakMode="truncatingTail" sendsActionOnEndEditing="YES" title="Table View Cell" id="V9D-KK-rY6">
+                                                                                <font key="font" metaFont="system"/>
+                                                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                                                            </textFieldCell>
+                                                                        </textField>
+                                                                    </subviews>
+                                                                    <visibilityPriorities>
+                                                                        <integer value="1000"/>
+                                                                    </visibilityPriorities>
+                                                                    <customSpacing>
+                                                                        <real value="3.4028234663852886e+38"/>
+                                                                    </customSpacing>
+                                                                </stackView>
+                                                            </subviews>
+                                                            <constraints>
+                                                                <constraint firstItem="F4j-hu-tEO" firstAttribute="top" secondItem="5xz-wt-fD1" secondAttribute="top" id="fQo-ki-giY"/>
+                                                                <constraint firstAttribute="trailing" secondItem="F4j-hu-tEO" secondAttribute="trailing" id="n49-ZO-5me"/>
+                                                                <constraint firstItem="F4j-hu-tEO" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="5xz-wt-fD1" secondAttribute="leading" id="zWG-u5-3m7"/>
+                                                            </constraints>
+                                                            <connections>
+                                                                <outlet property="labelField" destination="ftX-8o-Gix" id="e1u-E6-CNt"/>
+                                                                <outlet property="stackView" destination="F4j-hu-tEO" id="Ddh-yw-LE4"/>
+                                                                <outlet property="stackViewInset" destination="zWG-u5-3m7" id="HIV-OJ-8iQ"/>
+                                                            </connections>
+                                                        </tableCellView>
+                                                    </prototypeCellViews>
+                                                </tableColumn>
+                                                <tableColumn identifier="graph" width="192" minWidth="10" maxWidth="3.4028234663852886e+38" id="ZgR-ph-7xL">
+                                                    <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" title="Graph">
+                                                        <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
+                                                        <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
+                                                    </tableHeaderCell>
+                                                    <textFieldCell key="dataCell" lineBreakMode="truncatingTail" selectable="YES" editable="YES" title="Text Cell" id="r8Q-zX-vB5">
+                                                        <font key="font" metaFont="system"/>
+                                                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                        <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                    </textFieldCell>
+                                                    <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="NO"/>
+                                                    <prototypeCellViews>
+                                                        <tableCellView identifier="graph" id="k9L-mN-pQ2" customClass="HistoryCellView" customModule="Helm" customModuleProvider="target">
+                                                            <rect key="frame" x="463" y="1" width="192" height="40"/>
+                                                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                            <subviews>
+                                                                <stackView distribution="fill" orientation="horizontal" alignment="firstBaseline" spacing="4" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" horizontalClippingResistancePriority="750" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="g7H-jK-wS3">
+                                                                    <rect key="frame" x="8" y="24" width="64" height="16"/>
+                                                                    <subviews>
+                                                                        <textField focusRingType="none" horizontalHuggingPriority="750" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="t4E-yU-iO1" customClass="ExpansionTextField" customModule="Helm" customModuleProvider="target">
+                                                                            <rect key="frame" x="-2" y="0.0" width="68" height="16"/>
+                                                                            <textFieldCell key="cell" lineBreakMode="truncatingTail" sendsActionOnEndEditing="YES" title="Table View Cell" id="y2B-wX-vC3">
+                                                                                <font key="font" metaFont="system"/>
+                                                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                                                            </textFieldCell>
+                                                                        </textField>
+                                                                    </subviews>
+                                                                    <visibilityPriorities>
+                                                                        <integer value="1000"/>
+                                                                    </visibilityPriorities>
+                                                                    <customSpacing>
+                                                                        <real value="3.4028234663852886e+38"/>
+                                                                    </customSpacing>
+                                                                </stackView>
+                                                            </subviews>
+                                                            <constraints>
+                                                                <constraint firstItem="g7H-jK-wS3" firstAttribute="leading" secondItem="k9L-mN-pQ2" secondAttribute="leading" constant="8" id="a1B-c2-d3E"/>
+                                                                <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="g7H-jK-wS3" secondAttribute="trailing" id="f4G-h5-i6J"/>
+                                                                <constraint firstItem="g7H-jK-wS3" firstAttribute="top" secondItem="k9L-mN-pQ2" secondAttribute="top" id="k7L-m8-n9O"/>
+                                                            </constraints>
+                                                            <connections>
+                                                                <outlet property="labelField" destination="t4E-yU-iO1" id="p1Q-r2-s3T"/>
+                                                                <outlet property="stackView" destination="g7H-jK-wS3" id="u4V-w5-x6Y"/>
+                                                                <outlet property="stackViewInset" destination="a1B-c2-d3E" id="z7A-b8-c9D"/>
+                                                            </connections>
+                                                        </tableCellView>
+                                                    </prototypeCellViews>
+                                                </tableColumn>
+                                                <tableColumn identifier="commit" width="641" minWidth="10" maxWidth="3.4028234663852886e+38" id="xHc-GQ-AhT">
+                                                    <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" title="Commit">
+                                                        <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
+                                                        <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
+                                                    </tableHeaderCell>
+                                                    <textFieldCell key="dataCell" lineBreakMode="truncatingTail" selectable="YES" editable="YES" title="Text Cell" id="oQ9-ll-rZM">
+                                                        <font key="font" metaFont="system"/>
+                                                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                        <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                    </textFieldCell>
+                                                    <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="NO"/>
+                                                    <prototypeCellViews>
+                                                        <tableCellView identifier="commit" id="WuN-aq-nAK" customClass="HistoryCellView" customModule="Helm" customModuleProvider="target">
+                                                            <rect key="frame" x="658" y="1" width="641" height="40"/>
+                                                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                            <subviews>
+                                                                <stackView distribution="fill" orientation="horizontal" alignment="firstBaseline" spacing="4" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" horizontalClippingResistancePriority="750" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="2TG-b4-Vah">
+                                                                    <rect key="frame" x="8" y="24" width="92" height="16"/>
+                                                                    <subviews>
+                                                                        <textField focusRingType="none" horizontalHuggingPriority="750" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="mdO-L8-f9Z" customClass="ExpansionTextField" customModule="Helm" customModuleProvider="target">
+                                                                            <rect key="frame" x="-2" y="0.0" width="96" height="16"/>
+                                                                            <textFieldCell key="cell" lineBreakMode="truncatingTail" sendsActionOnEndEditing="YES" title="Table View Cell" id="XK5-ig-fhJ">
+                                                                                <font key="font" metaFont="system"/>
+                                                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                                                            </textFieldCell>
+                                                                        </textField>
+                                                                    </subviews>
+                                                                    <visibilityPriorities>
+                                                                        <integer value="1000"/>
+                                                                    </visibilityPriorities>
+                                                                    <customSpacing>
+                                                                        <real value="3.4028234663852886e+38"/>
+                                                                    </customSpacing>
+                                                                </stackView>
+                                                            </subviews>
+                                                            <constraints>
+                                                                <constraint firstItem="2TG-b4-Vah" firstAttribute="leading" secondItem="WuN-aq-nAK" secondAttribute="leading" constant="8" id="27Z-WZ-W4Z"/>
+                                                                <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="2TG-b4-Vah" secondAttribute="trailing" id="CTq-4q-9Yu"/>
+                                                                <constraint firstItem="2TG-b4-Vah" firstAttribute="top" secondItem="WuN-aq-nAK" secondAttribute="top" id="EtO-P7-TQS"/>
+                                                            </constraints>
+                                                            <connections>
+                                                                <outlet property="labelField" destination="mdO-L8-f9Z" id="9DU-8I-pNy"/>
+                                                                <outlet property="stackView" destination="2TG-b4-Vah" id="YfH-tf-P0A"/>
+                                                                <outlet property="stackViewInset" destination="27Z-WZ-W4Z" id="EXY-Et-4RI"/>
+                                                            </connections>
+                                                        </tableCellView>
+                                                    </prototypeCellViews>
+                                                </tableColumn>
+                                            </tableColumns>
+                                            <connections>
+                                                <outlet property="dataSource" destination="7EN-zW-9Gz" id="LSv-bC-xeI"/>
+                                                <outlet property="delegate" destination="7EN-zW-9Gz" id="8LZ-X3-VBJ"/>
+                                            </connections>
+                                        </tableView>
+                                    </subviews>
+                                </clipView>
+                                <scroller key="horizontalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="YES" id="3rN-EF-Tmn">
+                                    <rect key="frame" x="0.0" y="285" width="1027" height="16"/>
+                                    <autoresizingMask key="autoresizingMask"/>
+                                </scroller>
+                                <scroller key="verticalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="NO" id="Mpc-kq-eg0">
+                                    <rect key="frame" x="224" y="17" width="15" height="102"/>
+                                    <autoresizingMask key="autoresizingMask"/>
+                                </scroller>
+                                <tableHeaderView key="headerView" wantsLayer="YES" id="0g9-O5-s8m">
+                                    <rect key="frame" x="0.0" y="0.0" width="1285" height="25"/>
+                                    <autoresizingMask key="autoresizingMask"/>
+                                </tableHeaderView>
+                            </scrollView>
+                        </subviews>
+                        <visibilityPriorities>
+                            <integer value="1000"/>
+                        </visibilityPriorities>
+                        <customSpacing>
+                            <real value="3.4028234663852886e+38"/>
+                        </customSpacing>
+                    </stackView>
+                    <connections>
+                        <outlet property="historyTable" destination="dvr-AT-5yL" id="DN5-pL-sDB"/>
+                        <outlet property="tableController" destination="7EN-zW-9Gz" id="eFW-Wl-KEs"/>
+                    </connections>
+                </viewController>
+                <customObject id="cKh-pc-LKv" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
+                <customObject id="7EN-zW-9Gz" customClass="HistoryTableController" customModule="Helm" customModuleProvider="target">
+                    <connections>
+                        <outlet property="contextMenu" destination="Vmd-i1-Wb5" id="1DI-rw-9NT"/>
+                        <outlet property="view" destination="dvr-AT-5yL" id="Imo-5A-mg1"/>
+                    </connections>
+                </customObject>
+                <menu id="Vmd-i1-Wb5">
+                    <items>
+                        <menuItem title="Copy SHA" secondaryImage="document.on.document" catalog="system" id="fuv-lk-0n7">
+                            <modifierMask key="keyEquivalentModifierMask"/>
+                            <connections>
+                                <action selector="copySHAWithSender:" target="7EN-zW-9Gz" id="vKb-r2-RcM"/>
+                            </connections>
+                        </menuItem>
+                        <menuItem isSeparatorItem="YES" id="9Ln-sm-3P2"/>
+                        <menuItem title="Reset to this commit..." secondaryImage="scope" catalog="system" id="mSX-CQ-hW0">
+                            <modifierMask key="keyEquivalentModifierMask"/>
+                            <connections>
+                                <action selector="resetToCommitWithSender:" target="7EN-zW-9Gz" id="dKo-mg-XUK"/>
+                            </connections>
+                        </menuItem>
+                    </items>
+                    <accessibility identifier="HistoryMenu"/>
+                </menu>
+            </objects>
+            <point key="canvasLocation" x="19.5" y="-28.5"/>
+        </scene>
+    </scenes>
+    <resources>
+        <image name="document.on.document" catalog="system" width="16" height="18"/>
+        <image name="scope" catalog="system" width="18" height="18"/>
+    </resources>
+</document>

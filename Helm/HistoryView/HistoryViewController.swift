@@ -1,0 +1,48 @@
+import Cocoa
+
+/// View controller for history view, with the history list on top and
+/// detail views below.
+final class HistoryViewController: NSViewController
+{
+  @IBOutlet var tableController: HistoryTableController!
+  @IBOutlet weak var historyTable: NSTableView!
+
+  weak var splitController: NSSplitViewController!
+  weak var fileViewController: FileViewController!
+
+  var historyHidden: Bool
+  { splitController.splitViewItems[0].isCollapsed }
+  
+  var detailsHidden: Bool
+  { splitController.splitViewItems[1].isCollapsed }
+
+  override func loadView()
+  {
+    super.loadView()
+  
+    historyTable.intercellSpacing = NSSize(width: 3, height: 6)
+  }
+  
+  func finishLoad(repository: any FullRepository)
+  {
+    fileViewController.finishLoad(repository: repository)
+    tableController.finishLoad(repository: repository)
+  }
+  
+  func reload()
+  {
+    (historyTable.dataSource as? HistoryTableController)?.reload()
+    fileViewController.reload()
+  }
+}
+
+extension HistoryViewController: NSTabViewDelegate
+{
+  func tabView(_ tabView: NSTabView, didSelect tabViewItem: NSTabViewItem?)
+  {
+    if let identifier = tabViewItem?.identifier as? String,
+       identifier == "tree" {
+      fileViewController.refreshPreview()
+    }
+  }
+}

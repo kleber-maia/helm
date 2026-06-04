@@ -1,0 +1,129 @@
+@import "colors.css";
+
+body {
+  background-color: var(--underPageBackgroundColor);
+  color: var(--textColor);
+  margin: 0px;
+  counter-reset: line;
+  tab-size: 4;
+  --wrapping: pre-wrap;
+  --wrapwidth: 100%;
+}
+div.page {
+  background-color: var(--leftBackground);
+  border-bottom: var(--hunkBottomBorder) 1px;
+  width: var(--wrapwidth, 100%);
+}
+div.page div {
+  background-color: var(--textBackground);
+  margin-left: 5.5ex;
+  min-height: 1em;
+  padding-left: 1ex;
+  border-left: 1px var(--divider) solid;
+  white-space: var(--wrapping, pre);
+}
+div.page div:before {
+  content: counter(line);
+  counter-increment: line;
+  margin-top: 2px;
+  width: 22px;
+  position: absolute;
+  left: 3px;
+  text-align: right;
+  font-size: 0.75em;
+  color: var(--lineNumberColor);
+  -webkit-user-select: none;
+}
+
+div.hunk {
+  display: table;
+  width: var(--wrapwidth, 100%);
+  margin-bottom: 1em;
+  background-color: var(--textBackground);
+  box-shadow: 0 3px 5px 0 var(--shadow);
+  border-bottom: 1px solid var(--hunkBottomBorder);
+  border-top: 1px solid var(--hunkTopBorder);
+}
+div.hunk>div {
+  display: table-row;
+  white-space: pre-wrap;
+}
+div.hunk>div>span {
+  display: table-cell;
+}
+div.hunkhead {
+  width: 100%;
+  background-color: var(--heading);
+  height: 24px;
+}
+span.hunkbutton {
+  float: right;
+  border: 1px solid var(--buttonBorder);
+  border-radius: 4px;
+  display: inline;
+  padding: 2px 6px;
+  margin: 2px;
+  font-family: -apple-system;
+  background: linear-gradient(var(--buttonGrad1), var(--buttonGrad2));
+  -webkit-user-select: none;
+  cursor: default;
+}
+span.hunkbutton:active {
+  background: linear-gradient(#EEE, #DDD);
+  border-color: var(--buttonActiveBorder);
+}
+.hunknotice {
+  font-family: -apple-system;
+  opacity: 0.5;
+  padding: 5px;
+  float: right;
+}
+span.old, span.new {
+  position: relative;
+  min-width: 6ch;
+  max-width: 6ch;
+  width: 6ch;
+  font-size: 0.75em;
+  text-align: right;
+  padding-top: 2px;
+  padding-right: 4px;
+  border-right: 1px var(--divider) solid;
+  background-color: var(--leftBackground);
+  color: var(--lineNumberColor);
+  -webkit-user-select: none;
+}
+[line]::after {
+  content: attr(line);
+  white-space: pre;
+}
+span.new {
+  margin-right: 2px;
+}
+span.text {
+  padding-left: 3px;
+  width: 100%;
+  white-space: var(--wrapping, pre);
+}
+div.add {
+  background-color: var(--addBackground);
+  color: var(--addText);
+}
+div.del {
+  background-color: var(--deleteBackground);
+  color: var(--deleteText);
+}
+div.add>span.old {
+  background-color: var(--addBackground);
+}
+div.add>span.new {
+  background-color: var(--addBackground);
+}
+div.del>span.old {
+  background-color: var(--deleteBackground);
+}
+div.del>span.new {
+  background-color: var(--deleteBackground);
+}
+.empty {
+  -webkit-user-select: none;
+}

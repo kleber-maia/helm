@@ -1,0 +1,200 @@
+import Cocoa
+import os
+
+let serviceLogger = Logger(subsystem: Bundle.main.bundleIdentifier!,
+                           category: "services")
+
+protocol AccountService: AnyObject
+{
+  init?(account: Account, password: String)
+  func accountUpdated(oldAccount: Account, newAccount: Account)
+}
+
+protocol IdentifiableService: AnyObject, Identifiable where ID == UUID
+{
+  var id: UUID { get }
+}
+
+/// Manages and provides access to all service API instances.
+final class Services
+{
+  /// Status of server operations such as authentication.
+  enum Status
+  {
+    case unknown
+    case notStarted
+    case inProgress
+    case done
+    case failed(Error?)
+  }
+  
+  typealias RepositoryService = IdentifiableService & AccountService
+  
+
+  fileprivate static
+  let shared = Services(passwordStorage: KeychainStorage.shared)
+
+  let passwordStorage: any PasswordStorage
+
+  private var services: [AccountType: [String: BasicAuthService]] = [:]
+  var allServices: [any RepositoryService]
+  {
+    services.values.flatMap { $0.values.map { $0 as any RepositoryService } }
+  }
+
+  var serviceMakers: [AccountType: (Account) -> BasicAuthService?] = [:]
+  
+  init(passwordStorage: any PasswordStorage)
+  {
+    self.passwordStorage = passwordStorage
+
+    NotificationCenter.default.addObserver(
+        forName: .authenticationStatusChanged,
+        object: nil,
+        queue: .main)
+    {
+      (notification) in
+      guard let service = notification.object as? BasicAuthService
+      else { return }
+
+      if case .failed(let error) = service.authenticationStatus {
+        let serviceName = service.account.type.displayName.rawValue
+        let user = service.account.user
+
+        Task {
+          if await Self.shouldReauthenticate(service: serviceName,
+                                             user: user,
+                                             error: error?.localizedDescription) {
+            service.attemptAuthentication()
+          }
+        }
+      }
+    }
+  }
+
+  func pullRequestService(forID id: UUID) -> (any PullRequestService)?
+  {
+    allServices.first { $0.id == id } as? PullRequestService
+  }
+
+  @MainActor
+  static func shouldReauthenticate(service: String,
+                                   user: String,
+                                   error: String?) -> Bool
+  {
+    let alert = NSAlert()
+
+    alert.messageString = .authFailed(service: service, account: user)
+    alert.informativeText = error ?? ""
+    alert.addButton(withString: .ok)
+    alert.addButton(withString: .retry)
+    switch alert.runModal() {
+      case .alertFirstButtonReturn: // OK
+        break
+      case .alertSecondButtonReturn: // Retry
+        return true
+      default:
+        break
+    }
+    return false
+  }
+  
+  /// Creates an API object for each account so they can start with
+  /// authorization and other state info.
+  func initializeServices(with manager: AccountsManager)
+  {
+    for account in manager.accounts {
+      _ = service(for: account)
+    }
+  }
+  
+  private static func accountKey(_ account: Account) -> String
+  {
+    if let host = account.location.host {
+      return "\(account.user)@\(host)"
+    }
+    else {
+      return account.user
+    }
+  }
+  
+  /// Notifies all services that an account has been updated
+  func accountUpdated(oldAccount: Account, newAccount: Account)
+  {
+    for service in allServices {
+      service.accountUpdated(oldAccount: oldAccount, newAccount: newAccount)
+    }
+  }
+
+  func service(for account: Account) -> BasicAuthService?
+  {
+    let key = Services.accountKey(account)
+    if let typeServices = services[account.type],
+       let api = typeServices[key] {
+      return api
+    }
+    else if let api = serviceMakers[account.type]?(account) {
+      if services[account.type] != nil {
+        services[account.type]![key] = api
+      }
+      else {
+        services[account.type] = [key: api]
+      }
+      return api
+    }
+    return nil
+  }
+
+  func pullRequestService(for remote: any Remote) -> (any PullRequestService)?
+  {
+    let prServices = allServices.compactMap { $0 as? PullRequestService }
+    
+    return prServices.first { $0.match(remote: remote) }
+  }
+}
+
+extension Services
+{
+  public static var helm: Services
+  {
+    return shared
+  }
+
+#if DEBUG
+  static let testing: Services = {
+    let result = Services(passwordStorage: MemoryPasswordStorage.shared)
+    for type in AccountType.allCases {
+      result.serviceMakers[type] = MockAuthService.maker
+    }
+    return result
+  }()
+#endif
+}
+
+
+extension Services.Status: Equatable
+{
+}
+
+// This doesn't come for free because of the associated value on .failed
+func == (a: Services.Status, b: Services.Status) -> Bool
+{
+  switch (a, b) {
+    case (.unknown, .unknown),
+         (.notStarted, .notStarted),
+         (.inProgress, .inProgress),
+         (.done, .done):
+      return true
+    case (.failed, .failed):
+      return true
+    default:
+      return false
+  }
+}
+
+
+/// Protocol to be implemented by all concrete API classes.
+protocol ServiceAPI
+{
+  var type: AccountType { get }
+}

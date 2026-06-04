@@ -1,0 +1,1076 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 70;
+	objects = {
+
+/* Begin PBXAggregateTarget section */
+		C9CDB8F5270B673F007C2E77 /* Periphery */ = {
+			isa = PBXAggregateTarget;
+			buildConfigurationList = C9CDB8F6270B673F007C2E77 /* Build configuration list for PBXAggregateTarget "Periphery" */;
+			buildPhases = (
+				C9CDB8FA270B6746007C2E77 /* ShellScript */,
+			);
+			dependencies = (
+			);
+			name = Periphery;
+			productName = Periphery;
+		};
+		C9CDB900270D4DE7007C2E77 /* libgit2 */ = {
+			isa = PBXAggregateTarget;
+			buildConfigurationList = C9CDB901270D4DE7007C2E77 /* Build configuration list for PBXAggregateTarget "libgit2" */;
+			buildPhases = (
+				C9CDB905270D4DEC007C2E77 /* ShellScript */,
+			);
+			dependencies = (
+			);
+			name = libgit2;
+			productName = libgit2;
+		};
+/* End PBXAggregateTarget section */
+
+/* Begin PBXBuildFile section */
+		16632F603F3B44E360177CEA /* HelmWindowController+CustomActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3BFD943A797D6477CD66BA5 /* HelmWindowController+CustomActions.swift */; };
+		31A893A013E9DA5B008BE0C2 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 31A8939F13E9DA5B008BE0C2 /* WebKit.framework */; };
+		34297D13CB2B7002276725D9 /* CStringInterop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BA229508B6017AB17EF719D /* CStringInterop.swift */; };
+		618153008918518A44229FE5 /* CustomActionsDialog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44D9C14A30AC67A377AB568C /* CustomActionsDialog.swift */; };
+		6D487BE3B04E69D773BA136E /* MutexProtected.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89ED01725157F8CC6AFA9C37 /* MutexProtected.swift */; };
+		84F902A16B43F83AF2AE7BFE /* CustomActionsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73ED49E661794066334D9099 /* CustomActionsPanel.swift */; };
+		85F803A8A7DF5756CB5CCF23 /* CustomAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92BA9D97FB74F5A384979B95 /* CustomAction.swift */; };
+		89039F561703A9FC000949A8 /* html in Resources */ = {isa = PBXBuildFile; fileRef = 89039F551703A9FC000949A8 /* html */; };
+		891260E8285D395900053528 /* ConfigValueWrappers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 891260E7285D395900053528 /* ConfigValueWrappers.swift */; };
+		891C5F7326715C8A0099695D /* PrioritizedResults.swift in Sources */ = {isa = PBXBuildFile; fileRef = 891C5F7226715C8A0099695D /* PrioritizedResults.swift */; };
+		892F408D27ECCD2700659BF9 /* NoOpKeychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 892F408C27ECCD2700659BF9 /* NoOpKeychain.swift */; };
+		894937882F734FF70048F5FB /* LowerCaseString.swift in Sources */ = {isa = PBXBuildFile; fileRef = 894937872F734FF70048F5FB /* LowerCaseString.swift */; };
+		894937892F734FF70048F5FB /* CommandDisplay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 894937862F734FF70048F5FB /* CommandDisplay.swift */; };
+		897056ED20E412AC0020F5E9 /* ClickThroughImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 897056EC20E412AC0020F5E9 /* ClickThroughImageView.swift */; };
+		897A1BCC26D0593300EC9B9D /* UIStringExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 897A1BCB26D0593300EC9B9D /* UIStringExtensions.swift */; };
+		89880ECF20CF2B99007042F8 /* FlippedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89880ECE20CF2B99007042F8 /* FlippedView.swift */; };
+		89880ED120D02F9B007042F8 /* ClickableTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89880ED020D02F9B007042F8 /* ClickableTextField.swift */; };
+		89880EED20D17D1E007042F8 /* Media.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 89880EEC20D17D1E007042F8 /* Media.xcassets */; };
+		89ADB3BD283F2E6800EF508A /* Box.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89ADB3BC283F2E6800EF508A /* Box.swift */; };
+		89B1C9B228778BE6006724EA /* MemoryPasswordStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89B1C9B128778BE6006724EA /* MemoryPasswordStorage.swift */; };
+		89C2A77A2E8AF84D00765D84 /* Helm.icon in Resources */ = {isa = PBXBuildFile; fileRef = 89C2A7792E8AF84D00765D84 /* Helm.icon */; };
+		89F24B842C498878007D632E /* FakedMacro in Frameworks */ = {isa = PBXBuildFile; productRef = 89F24B832C498878007D632E /* FakedMacro */; };
+		89F411F528552A81009ECF7D /* DialogButtonRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89F411F428552A81009ECF7D /* DialogButtonRow.swift */; };
+		92CA96052F8BDB8E00906BCF /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = 92CA96042F8BDB8E00906BCF /* SwiftTerm */; };
+		97BDD61CACA59D8D84021566 /* CustomActionRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0FDD823C5A148EF755FACBD /* CustomActionRunner.swift */; };
+		9FBD932BCAB2EDCF3111BFF7 /* SymbolGridPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = C158E8AF9024EE661BCF2641 /* SymbolGridPicker.swift */; };
+		A7B3C1D9E5F0234856789ABC /* HelmSplitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1E2D3C4B5A6978605432109 /* HelmSplitView.swift */; };
+		C3FA470113D0F8E200AC4F9B /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C3FA470013D0F8E200AC4F9B /* Cocoa.framework */; };
+		C9004650211501CB00706029 /* Colors.swift in Sources */ = {isa = PBXBuildFile; fileRef = C900464F211501CB00706029 /* Colors.swift */; };
+		C90F92781E0199E400FE8589 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C90F92771E0199E400FE8589 /* AppDelegate.swift */; };
+		C931A0E727627E84007F441C /* MenuBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = C931A0E627627E84007F441C /* MenuBuilder.swift */; };
+		C931A0E92762B8AA007F441C /* ArrayBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = C931A0E82762B8A9007F441C /* ArrayBuilder.swift */; };
+		C93FFCAA1F0FD65100FDDD78 /* Defaults.plist in Resources */ = {isa = PBXBuildFile; fileRef = C93FFCA91F0FD65100FDDD78 /* Defaults.plist */; };
+		C93FFCBD1F13D3B200FDDD78 /* ValidatedSegment.swift in Sources */ = {isa = PBXBuildFile; fileRef = C93FFCBC1F13D3B200FDDD78 /* ValidatedSegment.swift */; };
+		C947367E1DF08C03000E3A05 /* ContextMenuOutlineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C947367D1DF08C03000E3A05 /* ContextMenuOutlineView.swift */; };
+		C95355FC1D9492EA00AEEF49 /* HelmDocumentController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C95355FB1D9492EA00AEEF49 /* HelmDocumentController.swift */; };
+		C957B84B1D2D53040040F858 /* SheetController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C957B84A1D2D53040040F858 /* SheetController.swift */; };
+		C957B8661D2D8D500040F858 /* PasswordStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = C957B8651D2D8D500040F858 /* PasswordStorage.swift */; };
+		C9864466207E9CAC0088209B /* StringIdentifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9864465207E9CAC0088209B /* StringIdentifiers.swift */; };
+		C9BD02FB226A275600172C0B /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = C9BD02FA226A275600172C0B /* Credits.rtf */; };
+		C9BD02FD226A278900172C0B /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = C9BD02FC226A278900172C0B /* MainMenu.xib */; };
+		C9C3013F26A2816F00EBBBC8 /* AXID.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9C3013E26A2816F00EBBBC8 /* AXID.swift */; };
+		C9C3014126A5BB7D00EBBBC8 /* AXIdentifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9C3014026A5BB7D00EBBBC8 /* AXIdentifiers.swift */; };
+		C9CDB91D270D4FD1007C2E77 /* libgit2-mac.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C9CDB91C270D4FD1007C2E77 /* libgit2-mac.a */; };
+		C9CDB920270D50A1007C2E77 /* libiconv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = C9CDB91F270D50A1007C2E77 /* libiconv.tbd */; };
+		C9CDB922270D50C1007C2E77 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = C9CDB921270D50C1007C2E77 /* libz.tbd */; };
+		C9CDB924270D54F9007C2E77 /* libssh2.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C9CDB923270D54F9007C2E77 /* libssh2.a */; };
+		C9EA18F7234F8DB000DDAA25 /* ControlValueWrappers.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9EA18F6234F8DB000DDAA25 /* ControlValueWrappers.swift */; };
+		C9F1B5F02217264A00293305 /* Nibs.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9F1B5EF2217264A00293305 /* Nibs.swift */; };
+		C9F5334D2187608300B2432C /* UIString.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9F5334C2187608300B2432C /* UIString.swift */; };
+		C9F764851F72F486000A208B /* Images.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9F764841F72F486000A208B /* Images.swift */; };
+		C9FFCC861FABC24B00FA2F21 /* ExpansionTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9FFCC851FABC24B00FA2F21 /* ExpansionTextField.swift */; };
+		D88D09F24C653C6F996A2A6E /* FileEventStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11D183DDA63CB411E4184FF1 /* FileEventStream.swift */; };
+		DD858B2C1801325500264F7D /* CoreServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DD858B2B1801325500264F7D /* CoreServices.framework */; };
+		DDD4708516F96F7E00CA76FF /* QuickLook.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DDD4708416F96F7E00CA76FF /* QuickLook.framework */; };
+		DDD4708716F9701600CA76FF /* Quartz.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DDD4708616F9701600CA76FF /* Quartz.framework */; };
+		DDDDAF1418162212009F8BA1 /* HelmQueueUtils.c in Sources */ = {isa = PBXBuildFile; fileRef = DDDDAF1318162212009F8BA1 /* HelmQueueUtils.c */; };
+		E57857C8EC012778E8F68749 /* QueueUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95D45656BBEBE3F3168D3425 /* QueueUtils.swift */; };
+		EB558062B79791C3C95E3E46 /* PublisherGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60968A89164FBB0DF5F42987 /* PublisherGroup.swift */; };
+		FD3E756AD0AA7FFAE04EAD41 /* Signpost.swift in Sources */ = {isa = PBXBuildFile; fileRef = E445DE41CC87A67ABFDC1B72 /* Signpost.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		C9CDB91A270D4FB0007C2E77 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = C3FA46F313D0F8E200AC4F9B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C9CDB900270D4DE7007C2E77;
+			remoteInfo = libgit2;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		C91F34751D3064E6005F9BDF /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		11D183DDA63CB411E4184FF1 /* FileEventStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FileEventStream.swift; path = Helm/Utils/FileEventStream.swift; sourceTree = SOURCE_ROOT; };
+		31355B0713EA139700C33AAB /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = System/Library/Frameworks/CoreFoundation.framework; sourceTree = SDKROOT; };
+		31A8939F13E9DA5B008BE0C2 /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
+		3DB98C8423E0928A0039B454 /* Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Shared.xcconfig; sourceTree = "<group>"; };
+		44D9C14A30AC67A377AB568C /* CustomActionsDialog.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CustomActionsDialog.swift; sourceTree = "<group>"; };
+		60968A89164FBB0DF5F42987 /* PublisherGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PublisherGroup.swift; path = Helm/Utils/PublisherGroup.swift; sourceTree = SOURCE_ROOT; };
+		73ED49E661794066334D9099 /* CustomActionsPanel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CustomActionsPanel.swift; sourceTree = "<group>"; };
+		89039F551703A9FC000949A8 /* html */ = {isa = PBXFileReference; lastKnownFileType = folder; path = html; sourceTree = "<group>"; };
+		891260E7285D395900053528 /* ConfigValueWrappers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigValueWrappers.swift; sourceTree = "<group>"; };
+		891C5F7226715C8A0099695D /* PrioritizedResults.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrioritizedResults.swift; sourceTree = "<group>"; };
+		892F408C27ECCD2700659BF9 /* NoOpKeychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoOpKeychain.swift; sourceTree = "<group>"; };
+		894937862F734FF70048F5FB /* CommandDisplay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandDisplay.swift; sourceTree = "<group>"; };
+		894937872F734FF70048F5FB /* LowerCaseString.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LowerCaseString.swift; sourceTree = "<group>"; };
+		894C8DE51CCD06FE001A4B80 /* Helm-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Helm-Bridging-Header.h"; sourceTree = "<group>"; };
+		897056EC20E412AC0020F5E9 /* ClickThroughImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClickThroughImageView.swift; sourceTree = "<group>"; };
+		897A1BCB26D0593300EC9B9D /* UIStringExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIStringExtensions.swift; sourceTree = "<group>"; };
+		89880ECE20CF2B99007042F8 /* FlippedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlippedView.swift; sourceTree = "<group>"; };
+		89880ED020D02F9B007042F8 /* ClickableTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClickableTextField.swift; sourceTree = "<group>"; };
+		89880EEC20D17D1E007042F8 /* Media.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Media.xcassets; sourceTree = "<group>"; };
+		89ADB3BC283F2E6800EF508A /* Box.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Box.swift; sourceTree = "<group>"; };
+		89B1C9B128778BE6006724EA /* MemoryPasswordStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryPasswordStorage.swift; sourceTree = "<group>"; };
+		89C2A7792E8AF84D00765D84 /* Helm.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; name = Helm.icon; path = Helm/Helm.icon; sourceTree = "<group>"; };
+		89ED01725157F8CC6AFA9C37 /* MutexProtected.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MutexProtected.swift; path = Helm/Utils/MutexProtected.swift; sourceTree = SOURCE_ROOT; };
+		89F411F428552A81009ECF7D /* DialogButtonRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DialogButtonRow.swift; sourceTree = "<group>"; };
+		92BA9D97FB74F5A384979B95 /* CustomAction.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CustomAction.swift; sourceTree = "<group>"; };
+		95D45656BBEBE3F3168D3425 /* QueueUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = QueueUtils.swift; path = Helm/Utils/QueueUtils.swift; sourceTree = SOURCE_ROOT; };
+		9BA229508B6017AB17EF719D /* CStringInterop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CStringInterop.swift; path = Helm/Utils/CStringInterop.swift; sourceTree = SOURCE_ROOT; };
+		C158E8AF9024EE661BCF2641 /* SymbolGridPicker.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SymbolGridPicker.swift; sourceTree = "<group>"; };
+		C3BFD943A797D6477CD66BA5 /* HelmWindowController+CustomActions.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "HelmWindowController+CustomActions.swift"; sourceTree = "<group>"; };
+		C3FA46FC13D0F8E200AC4F9B /* Helm.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Helm.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C3FA470013D0F8E200AC4F9B /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
+		C3FA470313D0F8E200AC4F9B /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
+		C3FA470413D0F8E200AC4F9B /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = System/Library/Frameworks/CoreData.framework; sourceTree = SDKROOT; };
+		C3FA470513D0F8E200AC4F9B /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
+		C3FA470813D0F8E200AC4F9B /* Helm-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Helm-Info.plist"; sourceTree = "<group>"; };
+		C3FA470C13D0F8E200AC4F9B /* Helm-Prefix.pch */ = {isa = PBXFileReference; indentWidth = 4; lastKnownFileType = sourcecode.c.h; path = "Helm-Prefix.pch"; sourceTree = "<group>"; tabWidth = 4; };
+		C900464F211501CB00706029 /* Colors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Colors.swift; sourceTree = "<group>"; };
+		C90F92771E0199E400FE8589 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		C931A0E2275E7426007F441C /* Helm.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Helm.entitlements; sourceTree = "<group>"; };
+		C931A0E627627E84007F441C /* MenuBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBuilder.swift; sourceTree = "<group>"; };
+		C931A0E82762B8A9007F441C /* ArrayBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArrayBuilder.swift; sourceTree = "<group>"; };
+		C93FFCA91F0FD65100FDDD78 /* Defaults.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Defaults.plist; sourceTree = "<group>"; };
+		C93FFCBC1F13D3B200FDDD78 /* ValidatedSegment.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ValidatedSegment.swift; sourceTree = "<group>"; };
+		C947367D1DF08C03000E3A05 /* ContextMenuOutlineView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContextMenuOutlineView.swift; sourceTree = "<group>"; };
+		C95355FB1D9492EA00AEEF49 /* HelmDocumentController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HelmDocumentController.swift; sourceTree = "<group>"; };
+		C957B84A1D2D53040040F858 /* SheetController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SheetController.swift; sourceTree = "<group>"; };
+		C957B8651D2D8D500040F858 /* PasswordStorage.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PasswordStorage.swift; sourceTree = "<group>"; };
+		C9864465207E9CAC0088209B /* StringIdentifiers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StringIdentifiers.swift; sourceTree = "<group>"; };
+		C9BD02FA226A275600172C0B /* Credits.rtf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.rtf; path = Credits.rtf; sourceTree = "<group>"; };
+		C9BD02FC226A278900172C0B /* MainMenu.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = MainMenu.xib; sourceTree = "<group>"; };
+		C9C3013E26A2816F00EBBBC8 /* AXID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AXID.swift; sourceTree = "<group>"; };
+		C9C3014026A5BB7D00EBBBC8 /* AXIdentifiers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AXIdentifiers.swift; sourceTree = "<group>"; };
+		C9CDB919270D4EA7007C2E77 /* build_libgit2.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = build_libgit2.sh; sourceTree = SOURCE_ROOT; };
+		C9CDB91C270D4FD1007C2E77 /* libgit2-mac.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = "libgit2-mac.a"; sourceTree = SOURCE_ROOT; };
+		C9CDB91F270D50A1007C2E77 /* libiconv.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libiconv.tbd; path = usr/lib/libiconv.tbd; sourceTree = SDKROOT; };
+		C9CDB921270D50C1007C2E77 /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
+		C9CDB923270D54F9007C2E77 /* libssh2.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssh2.a; path = /opt/homebrew/lib/libssh2.a; sourceTree = "<absolute>"; };
+		C9CDB990270DDE0D007C2E77 /* git2 */ = {isa = PBXFileReference; lastKnownFileType = folder; name = git2; path = libgit2/include/git2; sourceTree = "<group>"; };
+		C9CDB99B270DDEDF007C2E77 /* src */ = {isa = PBXFileReference; lastKnownFileType = folder; name = src; path = libgit2/src; sourceTree = "<group>"; };
+		C9EA18F6234F8DB000DDAA25 /* ControlValueWrappers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlValueWrappers.swift; sourceTree = "<group>"; };
+		C9F1B5EF2217264A00293305 /* Nibs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Nibs.swift; sourceTree = "<group>"; };
+		C9F5334C2187608300B2432C /* UIString.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIString.swift; sourceTree = "<group>"; };
+		C9F764841F72F486000A208B /* Images.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Images.swift; sourceTree = "<group>"; };
+		C9FFCC851FABC24B00FA2F21 /* ExpansionTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpansionTextField.swift; sourceTree = "<group>"; };
+		DD00725513E76DFB003B4120 /* Helm.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = Helm.icns; sourceTree = "<group>"; };
+		DD858B2B1801325500264F7D /* CoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreServices.framework; path = System/Library/Frameworks/CoreServices.framework; sourceTree = SDKROOT; };
+		DDD4708416F96F7E00CA76FF /* QuickLook.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuickLook.framework; path = System/Library/Frameworks/QuickLook.framework; sourceTree = SDKROOT; };
+		DDD4708616F9701600CA76FF /* Quartz.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Quartz.framework; path = System/Library/Frameworks/Quartz.framework; sourceTree = SDKROOT; };
+		DDDDAF1318162212009F8BA1 /* HelmQueueUtils.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = HelmQueueUtils.c; sourceTree = "<group>"; };
+		DDDDAF2018162258009F8BA1 /* HelmQueueUtils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HelmQueueUtils.h; sourceTree = "<group>"; };
+		E445DE41CC87A67ABFDC1B72 /* Signpost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Signpost.swift; path = Helm/Utils/Signpost.swift; sourceTree = SOURCE_ROOT; };
+		F0FDD823C5A148EF755FACBD /* CustomActionRunner.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CustomActionRunner.swift; sourceTree = "<group>"; };
+		F1E2D3C4B5A6978605432109 /* HelmSplitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = HelmSplitView.swift; path = Helm/Utils/HelmSplitView.swift; sourceTree = SOURCE_ROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		894937172F734F230048F5FB /* Repository */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Repository; sourceTree = "<group>"; };
+		8949376B2F734FCE0048F5FB /* Extensions */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Extensions; sourceTree = "<group>"; };
+		8949377E2F734FD90048F5FB /* SwiftUI */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = SwiftUI; sourceTree = "<group>"; };
+		894937A42F73521B0048F5FB /* Sidebar */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Sidebar; sourceTree = "<group>"; };
+		89F336162F814B0200A5E9DA /* Operations */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Operations; sourceTree = "<group>"; };
+		89F3364D2F814B0D00A5E9DA /* HistoryView */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = HistoryView; sourceTree = "<group>"; };
+		89F336A02F814B3200A5E9DA /* FileView */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = FileView; sourceTree = "<group>"; };
+		89F33B632F814B5E00A5E9DA /* Document */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Document; sourceTree = "<group>"; };
+		89F33B722F814BB200A5E9DA /* Services */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Services; sourceTree = "<group>"; };
+
+		A1BC0F002F73521B0048F5FB /* Terminal */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Terminal; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		C3FA46F913D0F8E200AC4F9B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				92CA96052F8BDB8E00906BCF /* SwiftTerm in Frameworks */,
+				31A893A013E9DA5B008BE0C2 /* WebKit.framework in Frameworks */,
+				C3FA470113D0F8E200AC4F9B /* Cocoa.framework in Frameworks */,
+				DDD4708516F96F7E00CA76FF /* QuickLook.framework in Frameworks */,
+				DDD4708716F9701600CA76FF /* Quartz.framework in Frameworks */,
+				DD858B2C1801325500264F7D /* CoreServices.framework in Frameworks */,
+				C9CDB91D270D4FD1007C2E77 /* libgit2-mac.a in Frameworks */,
+				C9CDB920270D50A1007C2E77 /* libiconv.tbd in Frameworks */,
+				C9CDB922270D50C1007C2E77 /* libz.tbd in Frameworks */,
+				89F24B842C498878007D632E /* FakedMacro in Frameworks */,
+				C9CDB924270D54F9007C2E77 /* libssh2.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		22D41FB42F0FF08E81FF6CCD /* Actions */ = {
+			isa = PBXGroup;
+			children = (
+				92BA9D97FB74F5A384979B95 /* CustomAction.swift */,
+				F0FDD823C5A148EF755FACBD /* CustomActionRunner.swift */,
+				73ED49E661794066334D9099 /* CustomActionsPanel.swift */,
+				44D9C14A30AC67A377AB568C /* CustomActionsDialog.swift */,
+				C3BFD943A797D6477CD66BA5 /* HelmWindowController+CustomActions.swift */,
+				C158E8AF9024EE661BCF2641 /* SymbolGridPicker.swift */,
+			);
+			path = Actions;
+			sourceTree = "<group>";
+		};
+		31C7C12A13EC730500A65FE9 /* Utils */ = {
+			isa = PBXGroup;
+			children = (
+				C931A0E82762B8A9007F441C /* ArrayBuilder.swift */,
+				89ADB3BC283F2E6800EF508A /* Box.swift */,
+				89880ED020D02F9B007042F8 /* ClickableTextField.swift */,
+				897056EC20E412AC0020F5E9 /* ClickThroughImageView.swift */,
+				894937862F734FF70048F5FB /* CommandDisplay.swift */,
+				891260E7285D395900053528 /* ConfigValueWrappers.swift */,
+				C947367D1DF08C03000E3A05 /* ContextMenuOutlineView.swift */,
+				C9EA18F6234F8DB000DDAA25 /* ControlValueWrappers.swift */,
+				9BA229508B6017AB17EF719D /* CStringInterop.swift */,
+				89F411F428552A81009ECF7D /* DialogButtonRow.swift */,
+				C9FFCC851FABC24B00FA2F21 /* ExpansionTextField.swift */,
+				8949376B2F734FCE0048F5FB /* Extensions */,
+				11D183DDA63CB411E4184FF1 /* FileEventStream.swift */,
+				89880ECE20CF2B99007042F8 /* FlippedView.swift */,
+				894937872F734FF70048F5FB /* LowerCaseString.swift */,
+				89B1C9B128778BE6006724EA /* MemoryPasswordStorage.swift */,
+				C931A0E627627E84007F441C /* MenuBuilder.swift */,
+				89ED01725157F8CC6AFA9C37 /* MutexProtected.swift */,
+				892F408C27ECCD2700659BF9 /* NoOpKeychain.swift */,
+				C957B8651D2D8D500040F858 /* PasswordStorage.swift */,
+				891C5F7226715C8A0099695D /* PrioritizedResults.swift */,
+				60968A89164FBB0DF5F42987 /* PublisherGroup.swift */,
+				F1E2D3C4B5A6978605432109 /* HelmSplitView.swift */,
+				95D45656BBEBE3F3168D3425 /* QueueUtils.swift */,
+				C957B84A1D2D53040040F858 /* SheetController.swift */,
+				E445DE41CC87A67ABFDC1B72 /* Signpost.swift */,
+				C9864465207E9CAC0088209B /* StringIdentifiers.swift */,
+				8949377E2F734FD90048F5FB /* SwiftUI */,
+				C93FFCBC1F13D3B200FDDD78 /* ValidatedSegment.swift */,
+				DDDDAF2018162258009F8BA1 /* HelmQueueUtils.h */,
+				DDDDAF1318162212009F8BA1 /* HelmQueueUtils.c */,
+			);
+			path = Utils;
+			sourceTree = "<group>";
+		};
+		3DB98C8223E0928A0039B454 /* Xcode-config */ = {
+			isa = PBXGroup;
+			children = (
+				3DB98C8423E0928A0039B454 /* Shared.xcconfig */,
+			);
+			path = "Xcode-config";
+			sourceTree = "<group>";
+		};
+		C3FA46F113D0F8E200AC4F9B = {
+			isa = PBXGroup;
+			children = (
+				C9CDB99B270DDEDF007C2E77 /* src */,
+				C9CDB990270DDE0D007C2E77 /* git2 */,
+				3DB98C8223E0928A0039B454 /* Xcode-config */,
+				C3FA470613D0F8E200AC4F9B /* Helm */,
+				C3FA46FF13D0F8E200AC4F9B /* Frameworks */,
+				C3FA46FD13D0F8E200AC4F9B /* Products */,
+				89C2A7792E8AF84D00765D84 /* Helm.icon */,
+			);
+			indentWidth = 2;
+			sourceTree = "<group>";
+			tabWidth = 2;
+			usesTabs = 0;
+		};
+		C3FA46FD13D0F8E200AC4F9B /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				C3FA46FC13D0F8E200AC4F9B /* Helm.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		C3FA46FF13D0F8E200AC4F9B /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				C9CDB923270D54F9007C2E77 /* libssh2.a */,
+				C9CDB921270D50C1007C2E77 /* libz.tbd */,
+				C9CDB91F270D50A1007C2E77 /* libiconv.tbd */,
+				DD858B2B1801325500264F7D /* CoreServices.framework */,
+				31A8939F13E9DA5B008BE0C2 /* WebKit.framework */,
+				C3FA470013D0F8E200AC4F9B /* Cocoa.framework */,
+				31355B0713EA139700C33AAB /* CoreFoundation.framework */,
+				DDD4708416F96F7E00CA76FF /* QuickLook.framework */,
+				DDD4708616F9701600CA76FF /* Quartz.framework */,
+				C3FA470213D0F8E200AC4F9B /* Other Frameworks */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		C3FA470213D0F8E200AC4F9B /* Other Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				C3FA470313D0F8E200AC4F9B /* AppKit.framework */,
+				C3FA470413D0F8E200AC4F9B /* CoreData.framework */,
+				C3FA470513D0F8E200AC4F9B /* Foundation.framework */,
+			);
+			name = "Other Frameworks";
+			sourceTree = "<group>";
+		};
+		C3FA470613D0F8E200AC4F9B /* Helm */ = {
+			isa = PBXGroup;
+			children = (
+				C931A0E2275E7426007F441C /* Helm.entitlements */,
+				89F33B632F814B5E00A5E9DA /* Document */,
+				894937172F734F230048F5FB /* Repository */,
+				89F336162F814B0200A5E9DA /* Operations */,
+				894937A42F73521B0048F5FB /* Sidebar */,
+				A1BC0F002F73521B0048F5FB /* Terminal */,
+				89F3364D2F814B0D00A5E9DA /* HistoryView */,
+				89F336A02F814B3200A5E9DA /* FileView */,
+				89F33B722F814BB200A5E9DA /* Services */,
+				31C7C12A13EC730500A65FE9 /* Utils */,
+				894C8DE51CCD06FE001A4B80 /* Helm-Bridging-Header.h */,
+				C90F92771E0199E400FE8589 /* AppDelegate.swift */,
+				C9C3013E26A2816F00EBBBC8 /* AXID.swift */,
+				C9C3014026A5BB7D00EBBBC8 /* AXIdentifiers.swift */,
+				C900464F211501CB00706029 /* Colors.swift */,
+				C9F1B5EF2217264A00293305 /* Nibs.swift */,
+				C9F764841F72F486000A208B /* Images.swift */,
+				C93FFCA91F0FD65100FDDD78 /* Defaults.plist */,
+				C9F5334C2187608300B2432C /* UIString.swift */,
+				897A1BCB26D0593300EC9B9D /* UIStringExtensions.swift */,
+				C95355FB1D9492EA00AEEF49 /* HelmDocumentController.swift */,
+				C9BD02FC226A278900172C0B /* MainMenu.xib */,
+				89039F551703A9FC000949A8 /* html */,
+				C3FA470713D0F8E200AC4F9B /* Supporting Files */,
+				89880EEC20D17D1E007042F8 /* Media.xcassets */,
+				C9CDB919270D4EA7007C2E77 /* build_libgit2.sh */,
+				C9CDB91C270D4FD1007C2E77 /* libgit2-mac.a */,
+				22D41FB42F0FF08E81FF6CCD /* Actions */,
+			);
+			path = Helm;
+			sourceTree = "<group>";
+		};
+		C3FA470713D0F8E200AC4F9B /* Supporting Files */ = {
+			isa = PBXGroup;
+			children = (
+				C3FA470813D0F8E200AC4F9B /* Helm-Info.plist */,
+				C3FA470C13D0F8E200AC4F9B /* Helm-Prefix.pch */,
+				C9BD02FA226A275600172C0B /* Credits.rtf */,
+				DD00725513E76DFB003B4120 /* Helm.icns */,
+			);
+			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		C3FA46FB13D0F8E200AC4F9B /* Helm */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C3FA473113D0F8E300AC4F9B /* Build configuration list for PBXNativeTarget "Helm" */;
+			buildPhases = (
+				C3FA46F813D0F8E200AC4F9B /* Sources */,
+				C3FA46F913D0F8E200AC4F9B /* Frameworks */,
+				C3FA46FA13D0F8E200AC4F9B /* Resources */,
+				C91F34751D3064E6005F9BDF /* CopyFiles */,
+				C9E881461E9570D400BFA7E5 /* SwiftLint */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C9CDB91B270D4FB0007C2E77 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				894937172F734F230048F5FB /* Repository */,
+				8949376B2F734FCE0048F5FB /* Extensions */,
+				8949377E2F734FD90048F5FB /* SwiftUI */,
+				894937A42F73521B0048F5FB /* Sidebar */,
+				89F336162F814B0200A5E9DA /* Operations */,
+				89F3364D2F814B0D00A5E9DA /* HistoryView */,
+				89F336A02F814B3200A5E9DA /* FileView */,
+				89F33B632F814B5E00A5E9DA /* Document */,
+				89F33B722F814BB200A5E9DA /* Services */,
+				A1BC0F002F73521B0048F5FB /* Terminal */,
+			);
+			name = Helm;
+			packageProductDependencies = (
+				89F24B832C498878007D632E /* FakedMacro */,
+				92CA96042F8BDB8E00906BCF /* SwiftTerm */,
+			);
+			productName = Helm;
+			productReference = C3FA46FC13D0F8E200AC4F9B /* Helm.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		C3FA46F313D0F8E200AC4F9B /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				CLASSPREFIX = HM;
+				LastSwiftUpdateCheck = 1110;
+				LastUpgradeCheck = 2640;
+				ORGANIZATIONNAME = "";
+				TargetAttributes = {
+					C3FA46FB13D0F8E200AC4F9B = {
+						LastSwiftMigration = 1020;
+					};
+					C9CDB8F5270B673F007C2E77 = {
+						CreatedOnToolsVersion = 13.0;
+					};
+					C9CDB900270D4DE7007C2E77 = {
+						CreatedOnToolsVersion = 13.0;
+					};
+				};
+			};
+			buildConfigurationList = C3FA46F613D0F8E200AC4F9B /* Build configuration list for PBXProject "Helm" */;
+			compatibilityVersion = "Xcode 15.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = C3FA46F113D0F8E200AC4F9B;
+			packageReferences = (
+				89F24B822C498878007D632E /* XCRemoteSwiftPackageReference "FakedMacro" */,
+				92CA96032F8BDB8E00906BCF /* XCRemoteSwiftPackageReference "SwiftTerm" */,
+			);
+			productRefGroup = C3FA46FD13D0F8E200AC4F9B /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				C3FA46FB13D0F8E200AC4F9B /* Helm */,
+				C9CDB8F5270B673F007C2E77 /* Periphery */,
+				C9CDB900270D4DE7007C2E77 /* libgit2 */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		C3FA46FA13D0F8E200AC4F9B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				89880EED20D17D1E007042F8 /* Media.xcassets in Resources */,
+				C9BD02FD226A278900172C0B /* MainMenu.xib in Resources */,
+				89C2A77A2E8AF84D00765D84 /* Helm.icon in Resources */,
+				89039F561703A9FC000949A8 /* html in Resources */,
+				C93FFCAA1F0FD65100FDDD78 /* Defaults.plist in Resources */,
+				C9BD02FB226A275600172C0B /* Credits.rtf in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		C9CDB8FA270B6746007C2E77 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "periphery scan --format xcode\n";
+		};
+		C9CDB905270D4DEC007C2E77 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "./build_libgit2.sh\n";
+		};
+		C9E881461E9570D400BFA7E5 /* SwiftLint */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = SwiftLint;
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if which swiftlint >/dev/null; then\nswiftlint\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		C3FA46F813D0F8E200AC4F9B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				34297D13CB2B7002276725D9 /* CStringInterop.swift in Sources */,
+				D88D09F24C653C6F996A2A6E /* FileEventStream.swift in Sources */,
+				6D487BE3B04E69D773BA136E /* MutexProtected.swift in Sources */,
+				EB558062B79791C3C95E3E46 /* PublisherGroup.swift in Sources */,
+				E57857C8EC012778E8F68749 /* QueueUtils.swift in Sources */,
+				A7B3C1D9E5F0234856789ABC /* HelmSplitView.swift in Sources */,
+				FD3E756AD0AA7FFAE04EAD41 /* Signpost.swift in Sources */,
+				C93FFCBD1F13D3B200FDDD78 /* ValidatedSegment.swift in Sources */,
+				C957B84B1D2D53040040F858 /* SheetController.swift in Sources */,
+				C9FFCC861FABC24B00FA2F21 /* ExpansionTextField.swift in Sources */,
+				C9C3013F26A2816F00EBBBC8 /* AXID.swift in Sources */,
+				C9004650211501CB00706029 /* Colors.swift in Sources */,
+				DDDDAF1418162212009F8BA1 /* HelmQueueUtils.c in Sources */,
+				C957B8661D2D8D500040F858 /* PasswordStorage.swift in Sources */,
+				C931A0E92762B8AA007F441C /* ArrayBuilder.swift in Sources */,
+				C9864466207E9CAC0088209B /* StringIdentifiers.swift in Sources */,
+				891260E8285D395900053528 /* ConfigValueWrappers.swift in Sources */,
+				C90F92781E0199E400FE8589 /* AppDelegate.swift in Sources */,
+				89ADB3BD283F2E6800EF508A /* Box.swift in Sources */,
+				C947367E1DF08C03000E3A05 /* ContextMenuOutlineView.swift in Sources */,
+				C95355FC1D9492EA00AEEF49 /* HelmDocumentController.swift in Sources */,
+				89B1C9B228778BE6006724EA /* MemoryPasswordStorage.swift in Sources */,
+				892F408D27ECCD2700659BF9 /* NoOpKeychain.swift in Sources */,
+				89880ED120D02F9B007042F8 /* ClickableTextField.swift in Sources */,
+				C9C3014126A5BB7D00EBBBC8 /* AXIdentifiers.swift in Sources */,
+				C931A0E727627E84007F441C /* MenuBuilder.swift in Sources */,
+				891C5F7326715C8A0099695D /* PrioritizedResults.swift in Sources */,
+				C9F764851F72F486000A208B /* Images.swift in Sources */,
+				89880ECF20CF2B99007042F8 /* FlippedView.swift in Sources */,
+				C9EA18F7234F8DB000DDAA25 /* ControlValueWrappers.swift in Sources */,
+				897056ED20E412AC0020F5E9 /* ClickThroughImageView.swift in Sources */,
+				894937882F734FF70048F5FB /* LowerCaseString.swift in Sources */,
+				894937892F734FF70048F5FB /* CommandDisplay.swift in Sources */,
+				C9F1B5F02217264A00293305 /* Nibs.swift in Sources */,
+				89F411F528552A81009ECF7D /* DialogButtonRow.swift in Sources */,
+				897A1BCC26D0593300EC9B9D /* UIStringExtensions.swift in Sources */,
+				C9F5334D2187608300B2432C /* UIString.swift in Sources */,
+				85F803A8A7DF5756CB5CCF23 /* CustomAction.swift in Sources */,
+				97BDD61CACA59D8D84021566 /* CustomActionRunner.swift in Sources */,
+				84F902A16B43F83AF2AE7BFE /* CustomActionsPanel.swift in Sources */,
+				618153008918518A44229FE5 /* CustomActionsDialog.swift in Sources */,
+				16632F603F3B44E360177CEA /* HelmWindowController+CustomActions.swift in Sources */,
+				9FBD932BCAB2EDCF3111BFF7 /* SymbolGridPicker.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		C9CDB91B270D4FB0007C2E77 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C9CDB900270D4DE7007C2E77 /* libgit2 */;
+			targetProxy = C9CDB91A270D4FB0007C2E77 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		C3D6CF2513D4DEE300D35D4D /* coverage */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 3DB98C8423E0928A0039B454 /* Shared.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "";
+				DEAD_CODE_STRIPPING = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				EXCLUDED_ARCHS = x86_64;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_GENERATE_TEST_COVERAGE_FILES = YES;
+				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = DEBUG;
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/libgit2/include",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					/opt/homebrew/lib,
+					/usr/local/lib,
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				ONLY_ACTIVE_ARCH = YES;
+				OTHER_LDFLAGS = "-lgcov";
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = coverage;
+		};
+		C3D6CF2613D4DEE300D35D4D /* coverage */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_APPICON_NAME = Helm;
+				CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGN_ENTITLEMENTS = Helm/Helm.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = JN736S572P;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
+				ENABLE_USER_SELECTED_FILES = readwrite;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "";
+				INFOPLIST_FILE = "Helm/Helm-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)",
+				);
+				MARKETING_VERSION = 1.0b18;
+				OTHER_CODE_SIGN_FLAGS = "--deep";
+				PRODUCT_BUNDLE_IDENTIFIER = group.soft.HelmIDE;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "Helm/Helm-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				WRAPPER_EXTENSION = app;
+			};
+			name = coverage;
+		};
+		C3FA472F13D0F8E300AC4F9B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 3DB98C8423E0928A0039B454 /* Shared.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "";
+				DEAD_CODE_STRIPPING = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
+				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = DEBUG;
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/libgit2/include",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					/opt/homebrew/lib,
+					/usr/local/lib,
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				ONLY_ACTIVE_ARCH = YES;
+				OTHER_LDFLAGS = "";
+				OTHER_SWIFT_FLAGS = "-D DEBUG";
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		C3FA473013D0F8E300AC4F9B /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 3DB98C8423E0928A0039B454 /* Shared.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "";
+				DEAD_CODE_STRIPPING = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
+				GCC_INSTRUMENT_PROGRAM_FLOW_ARCS = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/libgit2/include",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					/opt/homebrew/lib,
+					/usr/local/lib,
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				ONLY_ACTIVE_ARCH = YES;
+				OTHER_LDFLAGS = "";
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		C3FA473213D0F8E300AC4F9B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_APPICON_NAME = Helm;
+				CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGN_ENTITLEMENTS = Helm/Helm.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = JN736S572P;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
+				ENABLE_USER_SELECTED_FILES = readwrite;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "Helm/Helm-Prefix.pch";
+				INFOPLIST_FILE = "Helm/Helm-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)",
+				);
+				MARKETING_VERSION = 1.0b18;
+				OTHER_CODE_SIGN_FLAGS = "--deep";
+				PRODUCT_BUNDLE_IDENTIFIER = group.soft.HelmIDE;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "Helm/Helm-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				WRAPPER_EXTENSION = app;
+			};
+			name = Debug;
+		};
+		C3FA473313D0F8E300AC4F9B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_APPICON_NAME = Helm;
+				CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGN_ENTITLEMENTS = Helm/Helm.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				COPY_PHASE_STRIP = YES;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = JN736S572P;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
+				ENABLE_USER_SELECTED_FILES = readwrite;
+				EXCLUDED_ARCHS = x86_64;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "Helm/Helm-Prefix.pch";
+				INFOPLIST_FILE = "Helm/Helm-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)",
+				);
+				MARKETING_VERSION = 1.0b18;
+				OTHER_CODE_SIGN_FLAGS = "--deep";
+				PRODUCT_BUNDLE_IDENTIFIER = group.soft.HelmIDE;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OBJC_BRIDGING_HEADER = "Helm/Helm-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				WRAPPER_EXTENSION = app;
+			};
+			name = Release;
+		};
+		C9CDB8F7270B673F007C2E77 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		C9CDB8F8270B673F007C2E77 /* coverage */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = coverage;
+		};
+		C9CDB8F9270B673F007C2E77 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		C9CDB902270D4DE7007C2E77 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		C9CDB903270D4DE7007C2E77 /* coverage */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = coverage;
+		};
+		C9CDB904270D4DE7007C2E77 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEAD_CODE_STRIPPING = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		C3FA46F613D0F8E200AC4F9B /* Build configuration list for PBXProject "Helm" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C3FA472F13D0F8E300AC4F9B /* Debug */,
+				C3D6CF2513D4DEE300D35D4D /* coverage */,
+				C3FA473013D0F8E300AC4F9B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C3FA473113D0F8E300AC4F9B /* Build configuration list for PBXNativeTarget "Helm" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C3FA473213D0F8E300AC4F9B /* Debug */,
+				C3D6CF2613D4DEE300D35D4D /* coverage */,
+				C3FA473313D0F8E300AC4F9B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C9CDB8F6270B673F007C2E77 /* Build configuration list for PBXAggregateTarget "Periphery" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C9CDB8F7270B673F007C2E77 /* Debug */,
+				C9CDB8F8270B673F007C2E77 /* coverage */,
+				C9CDB8F9270B673F007C2E77 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C9CDB901270D4DE7007C2E77 /* Build configuration list for PBXAggregateTarget "libgit2" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C9CDB902270D4DE7007C2E77 /* Debug */,
+				C9CDB903270D4DE7007C2E77 /* coverage */,
+				C9CDB904270D4DE7007C2E77 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		89F24B822C498878007D632E /* XCRemoteSwiftPackageReference "FakedMacro" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Uncommon/FakedMacro";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+		92CA96032F8BDB8E00906BCF /* XCRemoteSwiftPackageReference "SwiftTerm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/migueldeicaza/SwiftTerm.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.5.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		89F24B832C498878007D632E /* FakedMacro */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 89F24B822C498878007D632E /* XCRemoteSwiftPackageReference "FakedMacro" */;
+			productName = FakedMacro;
+		};
+		92CA96042F8BDB8E00906BCF /* SwiftTerm */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 92CA96032F8BDB8E00906BCF /* XCRemoteSwiftPackageReference "SwiftTerm" */;
+			productName = SwiftTerm;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = C3FA46F313D0F8E200AC4F9B /* Project object */;
+}
