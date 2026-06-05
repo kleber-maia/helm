@@ -51,4 +51,24 @@ enum CodingAgent: String, CaseIterable, Sendable
       case .terminal: return nil
     }
   }
+
+  var codexBarProviderID: String?
+  {
+    switch self {
+      case .codex, .claude:
+        return rawValue
+      case .kimi, .terminal:
+        return nil
+    }
+  }
+
+  var codexBarSource: String?
+  {
+    switch self {
+      case .codex, .claude:
+        return "oauth"
+      case .kimi, .terminal:
+        return nil
+    }
+  }
 }

@@ -31,7 +31,10 @@ final class TerminalViewController: NSViewController
   override func loadView()
   {
     let terminal = LocalProcessTerminalView(frame: .zero)
-    terminal.font = .monospacedSystemFont(ofSize: 13, weight: .regular)
+    let terminalFont = NSFont.monospacedSystemFont(ofSize: 13,
+                                                   weight: .regular)
+
+    terminal.font = terminalFont
     terminal.nativeForegroundColor = .textColor
     terminal.nativeBackgroundColor = .textBackgroundColor
     terminal.caretColor = .controlAccentColor
@@ -42,6 +45,7 @@ final class TerminalViewController: NSViewController
     // color so the 8pt inset looks like internal content padding rather than
     // an external border.
     let container = TerminalBackground()
+
     container.addSubview(terminal)
 
     let padding: CGFloat = 8
@@ -49,7 +53,8 @@ final class TerminalViewController: NSViewController
       terminal.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: padding),
       terminal.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -padding),
       terminal.topAnchor.constraint(equalTo: container.topAnchor, constant: padding),
-      terminal.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -padding),
+      terminal.bottomAnchor.constraint(equalTo: container.bottomAnchor,
+                                       constant: -padding),
     ])
 
     view = container
@@ -157,6 +162,7 @@ final class TerminalViewController: NSViewController
     let escaped = path.replacingOccurrences(of: "'", with: "'\\''")
     return "'\(escaped)'"
   }
+
 }
 
 // MARK: - Container

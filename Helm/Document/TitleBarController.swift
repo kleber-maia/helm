@@ -34,7 +34,7 @@ class TitleBarController: NSObject
 
   weak var delegate: (any TitleBarDelegate)?
   
-  var progressSink: AnyCancellable?
+  private var sinks: [AnyCancellable] = []
   
   /// `true` when the Review (staging) panel is active.
   var reviewActive = false {
@@ -49,7 +49,15 @@ class TitleBarController: NSObject
   
   private var newBranchToolbarItem: NSToolbarItem?
   private var customActionToolbarItem: NSToolbarItem?
+  private var codingAgentUsageToolbarGroup: NSToolbarItemGroup?
   private var codingAgentToolbarItem: NSMenuToolbarItem?
+  private var codexBarUsageToolbarItem: NSToolbarItem?
+  private var codexBarUsageView: TerminalCodexBarStatusView?
+  private var codexBarUsageRefreshTimer: Timer?
+  private var codexBarUsageFetchInProgress = false
+  private var codexBarUsageHasStatus = false
+  private var codexBarUsageAgent: CodingAgent?
+  private var lastCodexBarUsageRefreshByAgent: [CodingAgent: Date] = [:]
   private var searchToolbarItem: NSSearchToolbarItem?
   private var previousSearchItem: NSToolbarItem?
   private var nextSearchItem: NSToolbarItem?
@@ -169,7 +177,8 @@ class TitleBarController: NSObject
   
   func observe(controller: any RepositoryController)
   {
-    progressSink = controller.progressPublisher
+    sinks.removeAll()
+    sinks.append(controller.progressPublisher
       .receive(on: DispatchQueue.main)
       .sink {
         (progress, total) in
@@ -185,7 +194,23 @@ class TitleBarController: NSObject
           self.spinner.stopAnimation(nil)
           self.spinner.isHidden = true
         }
-    }
+    })
+
+    let repositoryRefreshPublishers: [AnyPublisher<Void, Never>] = [
+      controller.configPublisher,
+      controller.headPublisher,
+      controller.indexPublisher,
+      controller.refsPublisher,
+      controller.stashPublisher,
+      controller.workspacePublisher.map { _ in () }.eraseToAnyPublisher(),
+    ]
+
+    sinks.append(Publishers.MergeMany(repositoryRefreshPublishers)
+      .debounce(for: .seconds(2), scheduler: DispatchQueue.main)
+      .sink {
+        [weak self] _ in
+        self?.refreshCodexBarUsageItem()
+      })
   }
 
   @IBAction
@@ -454,7 +479,9 @@ extension NSToolbarItem.Identifier
   
   static let newBranch: Self = ◊"helm.newBranch"
   static let customAction: Self = ◊"helm.customAction"
+  static let codingAgentUsageGroup: Self = ◊"helm.codingAgentUsageGroup"
   static let codingAgent: Self = ◊"helm.codingAgent"
+  static let codexBarUsage: Self = ◊"helm.codexBarUsage"
   static let view: Self = ◊"helm.view"
 }
 
@@ -503,15 +530,22 @@ extension TitleBarController: NSToolbarDelegate
       return item
     }
     if itemIdentifier == .codingAgent {
-      let item = NSMenuToolbarItem(
-          itemIdentifier: .codingAgent)
+      return makeCodingAgentToolbarItem()
+    }
+    if itemIdentifier == .codingAgentUsageGroup {
+      let item = NSToolbarItemGroup(itemIdentifier: .codingAgentUsageGroup)
+      let agentItem = makeCodingAgentToolbarItem()
 
-      item.isBordered = true
-      item.showsIndicator = true
-      item.target = self
-      item.action = #selector(showCodingAgentMenu(_:))
-      updateCodingAgentItem(item)
+      item.label = "Coding Agent"
+      item.paletteLabel = "Coding Agent"
+      item.toolTip = "Coding Agent"
+      item.subitems = [agentItem]
+      codingAgentUsageToolbarGroup = item
+      codingAgentToolbarItem = agentItem
       return item
+    }
+    if itemIdentifier == .codexBarUsage {
+      return makeCodexBarUsageToolbarItem()
     }
     return nil
   }
@@ -562,6 +596,14 @@ extension TitleBarController: NSToolbarDelegate
 
       case .codingAgent:
         codingAgentToolbarItem = item as? NSMenuToolbarItem
+        startCodexBarUsageUpdates()
+
+      case .codingAgentUsageGroup:
+        codingAgentUsageToolbarGroup = item as? NSToolbarItemGroup
+        startCodexBarUsageUpdates()
+
+      case .codexBarUsage:
+        codexBarUsageToolbarItem = item
 
       case .sidebarTrackingSeparator:
         separatorItem = item
@@ -607,6 +649,41 @@ extension TitleBarController
     repoConfig?.codingAgent ?? UserDefaults.helm.codingAgent
   }
 
+  private func makeCodingAgentToolbarItem() -> NSMenuToolbarItem
+  {
+    let item = NSMenuToolbarItem(
+        itemIdentifier: .codingAgent)
+
+    item.isBordered = true
+    item.showsIndicator = true
+    item.target = self
+    item.action = #selector(showCodingAgentMenu(_:))
+    updateCodingAgentItem(item)
+    return item
+  }
+
+  private func makeCodexBarUsageToolbarItem() -> NSToolbarItem
+  {
+    let item = NSToolbarItem(itemIdentifier: .codexBarUsage)
+    let font = NSFont.monospacedSystemFont(ofSize: 11,
+                                           weight: .regular)
+    let statusView = TerminalCodexBarStatusView(font: font,
+                                                contentSpacing: 8,
+                                                verticalInset: 0,
+                                                horizontalInset: 8,
+                                                meterMinimumWidth: 0)
+
+    item.label = "Usage"
+    item.paletteLabel = "Usage"
+    item.toolTip = "CodexBar Usage"
+    item.view = statusView
+    item.minSize = .zero
+    item.maxSize = .zero
+    codexBarUsageView = statusView
+    codexBarUsageToolbarItem = item
+    return item
+  }
+
   private func updateCodingAgentItem(_ item: NSMenuToolbarItem)
   {
     let agent = currentCodingAgent
@@ -621,6 +698,182 @@ extension TitleBarController
   {
     if let item = codingAgentToolbarItem {
       updateCodingAgentItem(item)
+    }
+    startCodexBarUsageUpdates()
+  }
+
+  func refreshCodexBarUsageAfterRepositoryRefresh()
+  {
+    refreshCodexBarUsageItem()
+  }
+
+  private func startCodexBarUsageUpdates()
+  {
+    refreshCodexBarUsageItem()
+    codexBarUsageRefreshTimer?.invalidate()
+    codexBarUsageRefreshTimer = Timer.scheduledTimer(
+        withTimeInterval: Self.codexBarUsageRefreshInterval,
+        repeats: true) {
+      [weak self] _ in
+      self?.refreshCodexBarUsageItem()
+    }
+  }
+
+  private func refreshCodexBarUsageItem()
+  {
+    guard !codexBarUsageFetchInProgress
+    else { return }
+
+    let agent = currentCodingAgent
+    guard agent.codexBarProviderID != nil
+    else {
+      codexBarUsageHasStatus = false
+      codexBarUsageAgent = nil
+      hideCodexBarUsageItem()
+      return
+    }
+
+    let lastRefresh = lastCodexBarUsageRefreshByAgent[agent] ?? .distantPast
+
+    guard Date().timeIntervalSince(lastRefresh) >=
+        Self.codexBarUsageRefreshInterval
+    else { return }
+
+    if codexBarUsageAgent != nil,
+       codexBarUsageAgent != agent,
+       !codexBarUsageHasStatus {
+      codexBarUsageHasStatus = false
+      codexBarUsageAgent = nil
+      hideCodexBarUsageItem()
+    }
+
+    lastCodexBarUsageRefreshByAgent[agent] = Date()
+    codexBarUsageFetchInProgress = true
+    CodexBarUsageFetcher.shared.fetch(for: agent) {
+      [weak self] status in
+      guard let self
+      else { return }
+
+      self.codexBarUsageFetchInProgress = false
+      guard agent == self.currentCodingAgent
+      else { return }
+
+      if let status {
+        self.codexBarUsageHasStatus = true
+        self.codexBarUsageAgent = agent
+        self.ensureCodexBarUsageItem()
+        self.codexBarUsageView?.update(with: status)
+        self.showCodexBarUsageItem()
+      }
+      else if !self.codexBarUsageHasStatus {
+        self.hideCodexBarUsageItem()
+      }
+    }
+  }
+
+  private func showCodexBarUsageItem()
+  {
+    ensureCodexBarUsageItem()
+
+    guard let item = codexBarUsageToolbarItem,
+          let view = codexBarUsageView
+    else { return }
+
+    view.isHidden = false
+    let size = view.intrinsicContentSize
+
+    item.minSize = size
+    item.maxSize = size
+  }
+
+  private func hideCodexBarUsageItem()
+  {
+    if let group = codingAgentUsageToolbarGroup,
+       let agentItem = codingAgentToolbarItem {
+      group.subitems = [agentItem]
+    }
+
+    guard let toolbar = window?.toolbar
+    else {
+      codexBarUsageView?.isHidden = true
+      codexBarUsageToolbarItem?.minSize = .zero
+      codexBarUsageToolbarItem?.maxSize = .zero
+      return
+    }
+
+    if let usageIndex = toolbar.items.firstIndex(where: {
+      $0.itemIdentifier == .codexBarUsage
+    }) {
+      let nextIndex = usageIndex + 1
+
+      if nextIndex < toolbar.items.count,
+         toolbar.items[nextIndex].itemIdentifier == .space {
+        toolbar.removeItem(at: nextIndex)
+      }
+      toolbar.removeItem(at: usageIndex)
+    }
+
+    codexBarUsageView = nil
+    codexBarUsageToolbarItem = nil
+  }
+
+  private func ensureCodexBarUsageItem()
+  {
+    if let group = codingAgentUsageToolbarGroup {
+      let agentItem = codingAgentToolbarItem ?? makeCodingAgentToolbarItem()
+      let usageItem = codexBarUsageToolbarItem ??
+          makeCodexBarUsageToolbarItem()
+
+      codingAgentToolbarItem = agentItem
+      if !group.subitems.contains(where: {
+        $0.itemIdentifier == .codexBarUsage
+      }) {
+        group.subitems = [agentItem, usageItem]
+      }
+      ensureSpaceAfterCodingAgentGroup()
+      return
+    }
+
+    guard let toolbar = window?.toolbar
+    else { return }
+
+    if !toolbar.items.contains(where: {
+      $0.itemIdentifier == .codexBarUsage
+    }) {
+      let agentIndex = toolbar.items.firstIndex {
+        $0.itemIdentifier == .codingAgent
+      } ?? 2
+      toolbar.insertItem(withItemIdentifier: .codexBarUsage,
+                         at: min(agentIndex + 1, toolbar.items.count))
+    }
+
+    guard let usageIndex = toolbar.items.firstIndex(where: {
+      $0.itemIdentifier == .codexBarUsage
+    })
+    else { return }
+
+    let nextIndex = usageIndex + 1
+    if nextIndex >= toolbar.items.count ||
+       toolbar.items[nextIndex].itemIdentifier != .space {
+      toolbar.insertItem(withItemIdentifier: .space,
+                         at: min(nextIndex, toolbar.items.count))
+    }
+  }
+
+  private func ensureSpaceAfterCodingAgentGroup()
+  {
+    guard let toolbar = window?.toolbar,
+          let groupIndex = toolbar.items.firstIndex(where: {
+            $0.itemIdentifier == .codingAgentUsageGroup
+          })
+    else { return }
+
+    let nextIndex = groupIndex + 1
+
+    if nextIndex >= toolbar.items.count ||
+       toolbar.items[nextIndex].itemIdentifier != .space {
+      toolbar.insertItem(withItemIdentifier: .space,
+                         at: min(nextIndex, toolbar.items.count))
     }
   }
 
@@ -678,9 +931,17 @@ extension TitleBarController
       if let item = self?.codingAgentToolbarItem {
         self?.updateCodingAgentItem(item)
       }
+      if agent.codexBarProviderID == nil {
+        self?.codexBarUsageHasStatus = false
+        self?.codexBarUsageAgent = nil
+        self?.hideCodexBarUsageItem()
+      }
+      self?.refreshCodexBarUsageItem()
       targetController?.restartTerminal(with: agent)
     }
   }
+
+  private static let codexBarUsageRefreshInterval: TimeInterval = 5 * 60
 }
 
 extension TitleBarController: NSMenuItemValidation

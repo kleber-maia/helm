@@ -182,6 +182,7 @@ final class HelmWindowController: NSWindowController,
     else {
       historyController.reload()
       tabbedSidebarController?.refresh()
+      titleBarController.refreshCodexBarUsageAfterRepositoryRefresh()
       return
     }
 
@@ -211,6 +212,7 @@ final class HelmWindowController: NSWindowController,
       Task { @MainActor in
         self.repoController.refsChanged()
         self.historyController.reload()
+        self.titleBarController.refreshCodexBarUsageAfterRepositoryRefresh()
       }
     }
   }
@@ -323,14 +325,33 @@ final class HelmWindowController: NSWindowController,
       toolbar.insertItem(withItemIdentifier: .customAction,
                          at: insertIndex)
     }
-    if !toolbar.items.contains(where: { $0.itemIdentifier == .codingAgent }) {
+    if let codingAgentIndex = toolbar.items.firstIndex(where: {
+      $0.itemIdentifier == .codingAgent
+    }) {
+      toolbar.removeItem(at: codingAgentIndex)
+    }
+    if !toolbar.items.contains(where: {
+      $0.itemIdentifier == .codingAgentUsageGroup
+    }) {
       // Insert after custom action
       let insertIndex = min(2, toolbar.items.count)
-      toolbar.insertItem(withItemIdentifier: .codingAgent,
+      toolbar.insertItem(withItemIdentifier: .codingAgentUsageGroup,
                          at: insertIndex)
     }
+    let groupIndex = toolbar.items.firstIndex {
+      $0.itemIdentifier == .codingAgentUsageGroup
+    } ?? 2
+    let itemAfterGroup = groupIndex + 1 < toolbar.items.count
+        ? toolbar.items[groupIndex + 1]
+        : nil
+
+    if itemAfterGroup?.itemIdentifier != .space {
+      toolbar.insertItem(withItemIdentifier: .space,
+                         at: min(groupIndex + 1, toolbar.items.count))
+    }
     if !toolbar.items.contains(where: { $0.itemIdentifier == .newBranch }) {
-      let insertIndex = min(3, toolbar.items.count)
+      let insertIndex = min(groupIndex + 2, toolbar.items.count)
+
       toolbar.insertItem(withItemIdentifier: .newBranch,
                          at: insertIndex)
     }
