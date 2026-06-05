@@ -23,6 +23,8 @@ final class HistoryTableController: NSViewController,
   { repoController?.repository as! (any Repository) }
   var sinks: [AnyCancellable] = []
   var graphColumnOffset: CGFloat = 0
+  private var isLoadingHistory = false
+  private var pendingHistoryReload = false
   
   func finishLoad(repository: any Repository)
   {
@@ -75,8 +77,8 @@ final class HistoryTableController: NSViewController,
     tableView.setAccessibilityIdentifier("history")
 
     history.postProgress = {
-      [weak self] (start, end) in
-      self?.batchFinished(start: start, end: end)
+      [weak self] (generation, start, end) in
+      self?.batchFinished(generation: generation, start: start, end: end)
     }
   }
   
@@ -93,11 +95,19 @@ final class HistoryTableController: NSViewController,
   
   func loadHistory()
   {
+    if isLoadingHistory {
+      pendingHistoryReload = true
+      return
+    }
+
+    isLoadingHistory = true
+    pendingHistoryReload = false
+
     let history = self.history
     let repository = self.repository
     weak let tableView = view as? NSTableView
     
-    history.reset()
+    let generation = history.reset()
 
     let queue = Thread.syncOnMain { repoUIController?.queue }
 
@@ -110,6 +120,12 @@ final class HistoryTableController: NSViewController,
       guard let walker = repository.walker()
       else {
         repoLogger.debug("RevWalker failed")
+        DispatchQueue.main.async {
+          [weak self] in
+          self?.finishHistoryLoad(generation: generation,
+                                  tableView: tableView,
+                                  reloadTable: false)
+        }
         return
       }
       
@@ -140,47 +156,66 @@ final class HistoryTableController: NSViewController,
         }
         DispatchQueue.main.async {
           [weak self] in
-          tableView?.reloadData()
-          self?.ensureSelection()
-          self?.updateHeadGraphColor()
+          self?.finishHistoryLoad(generation: generation,
+                                  tableView: tableView,
+                                  reloadTable: true)
         }
       }
     }
+  }
+
+  private func finishHistoryLoad(generation: Int,
+                                 tableView: NSTableView?,
+                                 reloadTable: Bool)
+  {
+    guard history.isCurrentGeneration(generation)
+    else { return }
+
+    isLoadingHistory = false
+
+    if pendingHistoryReload {
+      loadHistory()
+      return
+    }
+
+    guard reloadTable
+    else { return }
+
+    updateGraphColumnOffset()
+    tableView?.reloadData()
+    ensureSelection()
+    updateHeadGraphColor()
   }
   
   /// Notifier for history processing progress
   /// - parameter start: Row where the batch started
   /// - parameter end: Row where the batch ended
   nonisolated
-  func batchFinished(start: Int, end: Int)
+  func batchFinished(generation: Int, start: Int, end: Int)
   {
     DispatchQueue.main.async {
       [weak self] in
-      guard let tableView = self?.tableView
+      guard let self,
+            self.history.isCurrentGeneration(generation),
+            !self.isLoadingHistory,
+            !self.pendingHistoryReload
       else { return }
+
+      let tableView = self.tableView
       
       let batchRange = start..<end
-      let columnRange = 0..<tableView.tableColumns.count
-      var updateRange: ClosedRange<Int>?
+
+      self.updateGraphColumnOffset()
       
       tableView.enumerateAvailableRowViews {
         (rowView, row) in
         guard batchRange.contains(row)
         else { return }
         
-        if let oldRange = updateRange {
-          let start = min(row, oldRange.lowerBound)
-          let end = max(row, oldRange.upperBound)
-
-          updateRange = start...end
-        }
-        else {
-          updateRange = row...row
-        }
-        
         for column in 0..<rowView.numberOfColumns {
           if let cellView = rowView.view(atColumn: column) as? HistoryCellView {
             cellView.needsUpdateConstraints = true
+            cellView.needsLayout = true
             cellView.needsDisplay = true
           }
         }
@@ -188,12 +223,7 @@ final class HistoryTableController: NSViewController,
           rowView.needsDisplay = true
         }
       }
-      if let range = updateRange {
-        tableView.reloadData(forRowIndexes: IndexSet(integersIn: range),
-                             columnIndexes: IndexSet(integersIn: columnRange))
-      }
-      self?.updateHeadGraphColor()
-      self?.updateGraphColumnOffset()
+      self.updateHeadGraphColor()
     }
   }
 

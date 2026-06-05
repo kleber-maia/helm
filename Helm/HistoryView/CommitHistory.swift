@@ -76,7 +76,7 @@ final class CommitHistory<C: Commit>: @unchecked Sendable
   
   /// Progress reporting callback. Parameters are start and end. Will be
   /// called on the main thread.
-  var postProgress: (@MainActor (Int, Int) -> Void)?
+  var postProgress: (@MainActor (Int, Int, Int) -> Void)?
 
   /// Manually appends a commit.
   func appendCommit(_ commit: C)
@@ -95,18 +95,23 @@ final class CommitHistory<C: Commit>: @unchecked Sendable
   }
   
   /// Clears the history list.
-  public func reset()
+  @discardableResult
+  public func reset() -> Int
   {
     abort()
-    withSync {
+    let resetGeneration = withSync { () -> Int in
       commitLookup.removeAll()
       entries.removeAll()
       batchStart = 0
       batchTargetRow = 0
       processingConnections = [Connection]()
       maxColumnSeen = 0
+      self.generation += 1
+      return self.generation
     }
     resetAbort()
+
+    return resetGeneration
   }
   
   /// Signals that processing should be stopped.
@@ -134,16 +139,21 @@ final class CommitHistory<C: Commit>: @unchecked Sendable
   var batchTargetRow = 0
   var processingConnections = [Connection]()
   var maxColumnSeen: UInt = 0
+  private var generation = 0
   
   /// Processes the next batch of connections in the list. Should not be
   /// called on the main thread.
-  func processNextConnectionBatch()
+  @discardableResult
+  func processNextConnectionBatch(generation: Int) -> Bool
   {
     // Snapshot start + size under the sync lock so a concurrent reset()
     // can't empty `entries` between the read of `entries.count` and the
     // subscript below.
     let (currentBatchStart, batchSize, entriesSnapshot) = withSync {
       () -> (Int, Int, [Entry]) in
+      guard generation == self.generation
+      else { return (0, 0, []) }
+
       let start = batchStart
       let size = max(0, min(self.batchSize, entries.count - start))
       let end = start + size
@@ -153,53 +163,94 @@ final class CommitHistory<C: Commit>: @unchecked Sendable
     }
 
     guard batchSize > 0
-    else { return }
+    else { return false }
 
     let (connections, newConnections) =
           generateConnections(batchStart: currentBatchStart,
                               entries: entriesSnapshot,
                               starting: processingConnections)
 
-    Signpost.intervalStart(.generateLines(batchStart))
+    Signpost.intervalStart(.generateLines(currentBatchStart))
     DispatchQueue.concurrentPerform(iterations: batchSize) {
       (index) in
-      guard !checkAbort()
+      guard !checkAbort(),
+            isCurrentGeneration(generation)
       else { return }
 
       generateLines(entry: entriesSnapshot[index],
                     connections: connections[index])
     }
 
-    reportProgress(start: batchStart, end: batchStart + batchSize)
-    Signpost.intervalEnd(.generateLines(batchStart))
-    withSync {
-      processingConnections = newConnections
-      batchStart += batchSize
+    guard !checkAbort(),
+          isCurrentGeneration(generation)
+    else {
+      Signpost.intervalEnd(.generateLines(currentBatchStart))
+      return false
     }
+
+    let didFinishBatch = withSync {
+      guard generation == self.generation
+      else { return false }
+
+      processingConnections = newConnections
+      batchStart = currentBatchStart + batchSize
+      return true
+    }
+
+    guard didFinishBatch
+    else {
+      Signpost.intervalEnd(.generateLines(currentBatchStart))
+      return false
+    }
+
+    reportProgress(generation: generation,
+                   start: currentBatchStart,
+                   end: currentBatchStart + batchSize)
+    Signpost.intervalEnd(.generateLines(currentBatchStart))
+    return true
   }
 
-  func reportProgress(start: Int, end: Int)
+  func isCurrentGeneration(_ generation: Int) -> Bool
+  {
+    withSync { generation == self.generation }
+  }
+
+  func reportProgress(generation: Int, start: Int, end: Int)
   {
     if let postProgress = self.postProgress {
       DispatchQueue.main.async {
-        postProgress(start, end)
+        postProgress(generation, start, end)
       }
     }
   }
   
   public func processFirstBatch()
   {
-    withSync { batchStart = 0 }
-    processBatches(throughRow: batchSize-1)
+    let generation = withSync { () -> Int in
+      batchStart = 0
+      return self.generation
+    }
+    processBatches(throughRow: batchSize-1, generation: generation)
   }
   
   /// Starts processing rows until the given row is processed. If processing
   /// is already happening, the target is set to at least the given row.
   func processBatches(throughRow row: Int, queue: TaskQueue? = nil)
   {
+    let generation = withSync { self.generation }
+    processBatches(throughRow: row, generation: generation, queue: queue)
+  }
+
+  private func processBatches(throughRow row: Int,
+                              generation: Int,
+                              queue: TaskQueue? = nil)
+  {
     var startProcessing = false
     
     withSync {
+      guard generation == self.generation
+      else { return }
+
       guard row > batchTargetRow
       else { return }
       
@@ -211,17 +262,17 @@ final class CommitHistory<C: Commit>: @unchecked Sendable
       DispatchQueue.global(qos: .utility).async {
         if let queue = queue {
           queue.executeTask {
-            self.processBatch()
+            self.processBatch(generation: generation)
           }
         }
         else {
-          self.processBatch()
+          self.processBatch(generation: generation)
         }
       }
     }
   }
   
-  private func processBatch()
+  private func processBatch(generation: Int)
   {
     Signpost.interval(.processBatches) {
       while true {
@@ -231,6 +282,9 @@ final class CommitHistory<C: Commit>: @unchecked Sendable
         // exit decision or a concurrent caller can queue work that never
         // gets picked up (missed wakeup → visible hang).
         let keepGoing = self.withSync { () -> Bool in
+          guard generation == self.generation
+          else { return false }
+
           if self.batchStart < min(self.batchTargetRow,
                                    self.entries.count) {
             return true
@@ -242,7 +296,8 @@ final class CommitHistory<C: Commit>: @unchecked Sendable
         guard keepGoing
         else { break }
 
-        self.processNextConnectionBatch()
+        guard self.processNextConnectionBatch(generation: generation)
+        else { break }
       }
     }
   }
@@ -321,6 +376,7 @@ final class CommitHistory<C: Commit>: @unchecked Sendable
                                colorIndex: UInt)] = [:]
     var generatedLines: [HistoryLine] = []
     var localDotOffset: UInt? = nil
+    var localDotColorIndex: UInt? = nil
 
     for connection in connections {
       let commitIsParent = connection.parentOID == entryID
@@ -334,10 +390,7 @@ final class CommitHistory<C: Commit>: @unchecked Sendable
       
       if (localDotOffset == nil) && (commitIsParent || commitIsChild) {
         localDotOffset = nextChildIndex
-        withSync {
-          entry.dotOffset = nextChildIndex
-          entry.dotColorIndex = colorIndex
-        }
+        localDotColorIndex = colorIndex
       }
       if let parentLine = parentLines[connection.parentOID] {
         if !commitIsChild {
@@ -367,7 +420,9 @@ final class CommitHistory<C: Commit>: @unchecked Sendable
     }
 
     withSync {
-      entry.lines.append(contentsOf: generatedLines)
+      entry.dotOffset = localDotOffset
+      entry.dotColorIndex = localDotColorIndex
+      entry.lines = generatedLines
       if entryMax > maxColumnSeen {
         maxColumnSeen = entryMax
       }
