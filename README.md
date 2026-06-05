@@ -33,8 +33,6 @@ toolbar. When the selected terminal agent also exists in CodexBar, Helm displays
 session and weekly utilization, reset times, and pace-aware status without
 leaving the Git workflow.
 
-![Helm CodexBar usage toolbar](codexbar-usage.png)
-
 ## Project Status
 
 Helm is under active development. Core browsing, staging, history, branch,
