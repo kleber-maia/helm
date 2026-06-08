@@ -85,6 +85,7 @@ protocol SidebarCoordinatorDelegate: AnyObject
   func editRemote(_ remote: String)
   func deleteRemote(_ remote: String)
   func copyRemoteURL(_ remote: String)
+  func copyBranchName(_ name: String)
   func deleteTag(_ tag: TagRefName)
   func popStash(_ stashID: GitOID)
   func applyStash(_ stashID: GitOID)
@@ -145,6 +146,7 @@ final class SidebarCoordinator: ObservableObject
   func editRemote(_ remote: String) { delegate?.editRemote(remote) }
   func deleteRemote(_ remote: String) { delegate?.deleteRemote(remote) }
   func copyRemoteURL(_ remote: String) { delegate?.copyRemoteURL(remote) }
+  func copyBranchName(_ name: String) { delegate?.copyBranchName(name) }
   func deleteTag(_ tag: TagRefName) { delegate?.deleteTag(tag) }
 
   /// Presents the annotated-tag popover.

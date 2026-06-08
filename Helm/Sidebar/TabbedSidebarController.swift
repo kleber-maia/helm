@@ -187,10 +187,15 @@ final class TabbedSidebarController: NSHostingController<AnyView>
       .urlString(remote: "remote.\(remoteName).url")
     else { return }
 
+    copyToPasteboard(remoteURL)
+  }
+
+  private func copyToPasteboard(_ string: String)
+  {
     let pasteboard = NSPasteboard.general
 
     pasteboard.declareTypes([.string], owner: nil)
-    pasteboard.setString(remoteURL, forType: .string)
+    pasteboard.setString(string, forType: .string)
   }
 
   // MARK: Notifications
@@ -222,6 +227,11 @@ final class TabbedSidebarController: NSHostingController<AnyView>
         try block()
         if let onSuccess {
           Task { @MainActor in onSuccess() }
+        }
+      }
+      catch let error as RepoError {
+        Task { @MainActor in
+          self.controller?.showErrorMessage(error: error)
         }
       }
       catch let error as NSError {
@@ -351,6 +361,11 @@ extension TabbedSidebarController: SidebarCoordinatorDelegate
     copyRemoteURL(named: remote)
   }
 
+  func copyBranchName(_ name: String)
+  {
+    copyToPasteboard(name)
+  }
+
   func deleteTag(_ tag: TagRefName)
   {
     confirmDelete(kind: .ItemType.tag, name: tag.name,
@@ -394,6 +409,11 @@ extension TabbedSidebarController: SidebarCoordinatorDelegate
 
   func refreshSidebar()
   {
-    viewModels.refresh()
+    guard let controller
+    else { return }
+
+    if !controller.repoController.tryRefsChanged() {
+      controller.deferLocalRefreshUntilQueueIdle()
+    }
   }
 }

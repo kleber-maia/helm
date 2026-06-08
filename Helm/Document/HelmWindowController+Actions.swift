@@ -5,7 +5,7 @@ extension HelmWindowController
   @IBAction
   func refresh(_ sender: AnyObject)
   {
-    refreshWithFetch()
+    refreshLocalState()
   }
   
   @IBAction
@@ -63,6 +63,36 @@ extension HelmWindowController
   {
     startOperation {
       FetchOpController(remoteOption: .currentBranch, windowController: self)
+    }
+  }
+
+  @IBAction
+  func updateSubmodules(_: AnyObject)
+  {
+    guard !repoController.queue.isBusy
+    else { return }
+
+    let submodules = repository.submodules()
+    guard !submodules.isEmpty
+    else { return }
+
+    repoController.queue.executeOffMainThread {
+      for submodule in submodules {
+        let callbacks = self.remoteCallbacks(for: submodule.url)
+
+        do {
+          try submodule.update(callbacks: callbacks)
+        }
+        catch {
+          repoLogger.debug(
+              "Submodule update failed for \(submodule.name): \(error)")
+        }
+      }
+
+      Task { @MainActor in
+        self.refreshLocalState()
+        self.repoController.indexChanged()
+      }
     }
   }
 
@@ -327,6 +357,9 @@ extension HelmWindowController: NSMenuItemValidation
 
       case #selector(self.fetchAllRemotes(_:)):
         result = !repository.remoteNames().isEmpty
+
+      case #selector(self.updateSubmodules(_:)):
+        result = !repoController.queue.isBusy && !repository.submodules().isEmpty
 
       case #selector(self.fetchCurrentBranch(_:)):
         if let (branchName, remote) = trackingBranchInfo() {

@@ -56,6 +56,7 @@ public struct UIString: RawRepresentable, Sendable
   static let clone = ›"Clone"
   static let commit = ›"Commit"
   static let copyURL = ›"Copy URL"
+  static let copyBranchName = ›"Copy Branch Name"
   static let create = ›"Create"
   static let createTrackingBranch = ›"Create Tracking Branch..."
   static let createRemote = ›"Create Remote"

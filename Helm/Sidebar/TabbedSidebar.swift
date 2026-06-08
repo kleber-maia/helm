@@ -194,7 +194,7 @@ struct TabbedSidebar<Brancher, Manager, Referencer, Stasher, Tagger, SubManager>
       let _ = accessories.revision
       accessories.accessory(for: branch.refName)
     }, contextMenu: {
-      branchContextMenu(for: branch.refName)
+      branchContextMenu(for: branch)
     })
   }
 
@@ -311,9 +311,10 @@ struct TabbedSidebar<Brancher, Manager, Referencer, Stasher, Tagger, SubManager>
   @ViewBuilder
   private func branchesActionMenu() -> some View
   {
-    let branchRef = selectedLocalBranch
-    let canEdit = canEditBranch(branchRef)
-    let canMerge = canMergeBranch(branchRef)
+    let branch = selectedLocalBranchItem
+    let branchRef = branch?.refName
+    let canEdit = branch != nil && branch?.isCurrent == false
+    let canMerge = canEdit
 
     Button("New branch...", systemImage: "plus") {
       coordinator.newBranch()
@@ -337,7 +338,7 @@ struct TabbedSidebar<Brancher, Manager, Referencer, Stasher, Tagger, SubManager>
     }
       .disabled(!canEdit)
     if let branchRef,
-       model.brancher.localBranch(named: branchRef)?.trackingBranch != nil {
+       branch?.trackingRefName != nil {
       Button(.deleteBranchAndRemote, systemImage: "trash") {
         coordinator.deleteBranchAndRemote(branchRef)
       }
@@ -431,29 +432,35 @@ struct TabbedSidebar<Brancher, Manager, Referencer, Stasher, Tagger, SubManager>
   }
 
   @ViewBuilder
-  private func branchContextMenu(for ref: LocalBranchRefName) -> some View
+  private func branchContextMenu(for branch: BranchListItem) -> some View
   {
-    if ref != model.brancher.currentBranch {
+    let ref = branch.refName
+    let canEdit = !branch.isCurrent
+
+    if canEdit {
       Button(command: .checkOut) { coordinator.checkoutBranch(ref) }
         .axid(.BranchPopup.checkOut)
     }
     Button(command: .rename) { coordinator.renameBranch(ref) }
       .axid(.BranchPopup.rename)
-      .disabled(!canEditBranch(ref))
+      .disabled(!canEdit)
     Button(command: .merge) { coordinator.mergeBranch(ref) }
       .axid(.BranchPopup.merge)
-      .disabled(!canMergeBranch(ref))
+      .disabled(!canEdit)
+    Button(.copyBranchName, systemImage: "document.on.document") {
+      coordinator.copyBranchName(ref.name)
+    }
     Divider()
     Button(command: .delete, role: .destructive) {
       coordinator.deleteBranch(ref)
     }
       .axid(.BranchPopup.delete)
-      .disabled(!canEditBranch(ref))
-    if model.brancher.localBranch(named: ref)?.trackingBranch != nil {
+      .disabled(!canEdit)
+    if branch.trackingRefName != nil {
       Button(.deleteBranchAndRemote, systemImage: "trash", role: .destructive) {
         coordinator.deleteBranchAndRemote(ref)
       }
-        .disabled(!canEditBranch(ref))
+        .disabled(!canEdit)
     }
   }
 
@@ -495,6 +502,9 @@ struct TabbedSidebar<Brancher, Manager, Referencer, Stasher, Tagger, SubManager>
       .axid(.RemoteBranchPopup.createTracking)
     Button(command: .merge) {
       coordinator.mergeRemoteBranch(ref)
+    }
+    Button(.copyBranchName, systemImage: "document.on.document") {
+      coordinator.copyBranchName(ref.name)
     }
   }
 
@@ -539,6 +549,14 @@ struct TabbedSidebar<Brancher, Manager, Referencer, Stasher, Tagger, SubManager>
     return ref
   }
 
+  private var selectedLocalBranchItem: BranchListItem?
+  {
+    guard let selectedLocalBranch
+    else { return nil }
+
+    return localBranchItem(for: selectedLocalBranch, in: model.items)
+  }
+
   private var tagSelection: TagRefName?
   {
     guard case let .tag(ref)? = listSelection
@@ -553,14 +571,23 @@ struct TabbedSidebar<Brancher, Manager, Referencer, Stasher, Tagger, SubManager>
     return name
   }
 
-  private func canEditBranch(_ branchRef: LocalBranchRefName?) -> Bool
+  private func localBranchItem(for ref: LocalBranchRefName,
+                               in nodes: [PathTreeNode<SidebarTreeItem>])
+      -> BranchListItem?
   {
-    branchRef != nil && branchRef != model.brancher.currentBranch
-  }
+    for node in nodes {
+      if case .localBranch(let branch)? = node.item,
+         branch.refName == ref {
+        return branch
+      }
 
-  private func canMergeBranch(_ branchRef: LocalBranchRefName?) -> Bool
-  {
-    branchRef != nil && branchRef != model.brancher.currentBranch
+      if let children = node.children,
+         let branch = localBranchItem(for: ref, in: children) {
+        return branch
+      }
+    }
+
+    return nil
   }
 
   @ViewBuilder

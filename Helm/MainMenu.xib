@@ -353,6 +353,12 @@
                                     <action selector="refresh:" target="-1" id="yIh-B6-s8M"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="Update Submodules" secondaryImage="arrow.clockwise" catalog="system" keyEquivalent="u" id="usm-Ud-Sub">
+                                <modifierMask key="keyEquivalentModifierMask" control="YES" command="YES"/>
+                                <connections>
+                                    <action selector="updateSubmodules:" target="-1" id="usm-Ud-act"/>
+                                </connections>
+                            </menuItem>
                             <menuItem isSeparatorItem="YES" id="fMJ-BA-jcw"/>
                             <menuItem title="New Tag..." secondaryImage="tag" catalog="system" keyEquivalent="t" id="548">
                                 <connections>
