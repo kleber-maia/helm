@@ -64,6 +64,7 @@ final class FileViewController: NSViewController, RepositoryWindowViewController
   var fileWatcher: FileEventStream?
   var indexTimer: Timer?
   var sinks: [AnyCancellable] = []
+  private var reloadPreviewWhenQueueIdle = false
   
   var contentControllers: [FileContentLoading]
   { [diffController] }
@@ -606,6 +607,19 @@ final class FileViewController: NSViewController, RepositoryWindowViewController
       listController.fileTreeDataSource.isReviewPanel = isReviewPanel
       listController.finishLoad(controller: controller)
     }
+
+    sinks.append(controller.repoController.queue.busyPublisher
+        .receive(on: DispatchQueue.main)
+        .sink {
+          [weak self] busy in
+          guard let self = self,
+                !busy,
+                self.reloadPreviewWhenQueueIdle
+          else { return }
+
+          self.reloadPreviewWhenQueueIdle = false
+          self.loadSelectedPreview(force: true)
+        })
   }
   
   func restoreSplit() {}
@@ -704,7 +718,10 @@ final class FileViewController: NSViewController, RepositoryWindowViewController
     // async data-source reload notifications arrive.
     activeFileList = showingStaged ? reviewListController.outlineView
                                    : commitListController.outlineView
-    if let commit = newModel.target.oid.flatMap({ repo?.commit(forOID: $0) }) {
+    if let commitSelection = newModel as? CommitSelection {
+      commitHeader.commit = commitSelection.commit
+    }
+    else if let commit = newModel.target.oid.flatMap({ repo?.commit(forOID: $0) }) {
       commitHeader.commit = commit
     }
     clearPreviews()
@@ -728,6 +745,11 @@ final class FileViewController: NSViewController, RepositoryWindowViewController
   {
     guard !contentController.isLoaded || force
     else { return }
+
+    if repoUIController?.repoController.queue.isBusy == true {
+      reloadPreviewWhenQueueIdle = true
+      return
+    }
     
     let changes = selectedChanges
     guard !changes.isEmpty,

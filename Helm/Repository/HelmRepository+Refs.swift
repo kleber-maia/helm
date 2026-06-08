@@ -17,12 +17,19 @@ extension HelmRepository: Branching
 {
   public var currentBranch: LocalBranchRefName?
   {
-    mutex.withLock {
-      if currentBranchSubject.value == nil {
-        refsChanged()
-      }
-      return currentBranchSubject.value.flatMap { .init($0) }
+    if let cachedBranch = currentBranchSubject.value {
+      return .init(cachedBranch)
     }
+
+    guard mutex.try()
+    else { return nil }
+
+    defer { mutex.unlock() }
+
+    if currentBranchSubject.value == nil {
+      refsChanged()
+    }
+    return currentBranchSubject.value.flatMap { .init($0) }
   }
 
   public var currentBranchPublisher: AnyPublisher<LocalBranchRefName?, Never>

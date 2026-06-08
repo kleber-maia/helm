@@ -222,11 +222,21 @@ final class RepositoryWatcher
     
     if !refChanges.isEmpty {
       repository.rebuildRefsIndex()
-      publishers.send(.refs)
       repository.refsChanged()
+      publishers.send(.refs)
     }
     
     refsCache = newRefCache
+  }
+
+  func resetRefsCache()
+  {
+    guard let repository = self.repository
+    else { return }
+
+    mutex.withLock {
+      refsCache = Self.index(from: repository)
+    }
   }
   
   func checkLogs(changedPaths: [String])

@@ -115,7 +115,7 @@ public protocol CommitStorage: AnyObject
 }
 
 /// How many commits one commit is compared to another in the graph.
-public struct GraphStatus: Sendable
+public struct GraphStatus: Equatable, Sendable
 {
   public let ahead, behind: Int
 

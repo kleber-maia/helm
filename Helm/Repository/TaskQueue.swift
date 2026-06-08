@@ -20,6 +20,8 @@ public final class TaskQueue: @unchecked Sendable
   private let busyValuePublisher = CurrentValueSubject<Bool, Never>(false)
   public var busyPublisher: AnyPublisher<Bool, Never>
   { busyValuePublisher.eraseToAnyPublisher() }
+  public var isBusy: Bool
+  { lock.withLock { queueCount > 0 } }
   
   init(id: String)
   {

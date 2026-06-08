@@ -148,6 +148,17 @@ public final class HelmRepository: BasicRepository, RepoConfiguring
 
     currentBranchSubject.value = newBranch
   }
+
+  func tryRefsChanged() -> Bool
+  {
+    guard mutex.try()
+    else { return false }
+
+    defer { mutex.unlock() }
+    rebuildRefsIndex()
+    refsChanged()
+    return true
+  }
   
   func recalculateHead()
   {

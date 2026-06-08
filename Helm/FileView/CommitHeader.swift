@@ -39,10 +39,6 @@ class CommitHeaderHostingView: NSHostingView<CommitHeader>
       
       rootView = CommitHeader(
           commit: newValue,
-          messageLookup: {
-            [weak self] in
-            self?.repository?.commit(forOID: $0)?.messageSummary ?? ""
-          },
           selectParent: select)
     }
   }
@@ -51,7 +47,6 @@ class CommitHeaderHostingView: NSHostingView<CommitHeader>
 struct CommitHeader: View
 {
   let commit: (any Commit)?
-  let messageLookup: (GitOID) -> String
   let selectParent: (GitOID) -> Void
 
   enum Measurement
@@ -93,7 +88,7 @@ struct CommitHeader: View
                 ForEach(commit.parentOIDs, id: \.sha) { oid in
                   HStack {
                     CommitHeaderLabel("Parent:")
-                    Text(messageLookup(oid))
+                    Text(oid.sha.shortString)
                       .foregroundColor(.blue)
                       .onHover { isInside in
                         if isInside {
@@ -167,16 +162,13 @@ struct CommitHeader: View
   init()
   {
     self.commit = nil
-    self.messageLookup = { _ in "" }
     self.selectParent = { _ in }
   }
 
   init(commit: (any Commit)?,
-       messageLookup: @escaping (GitOID) -> String,
        selectParent: @escaping (GitOID) -> Void)
   {
     self.commit = commit
-    self.messageLookup = messageLookup
     self.selectParent = selectParent
   }
 }
@@ -254,10 +246,8 @@ struct CommitHeader_Previews: PreviewProvider
 
   static var previews: some View {
     CommitHeader(commit: PreviewCommit(),
-                 messageLookup: { parents[$0]! },
                  selectParent: { _ in })
     CommitHeader(commit: nil,
-                 messageLookup: { _ in "" },
                  selectParent: { _ in })
       .frame(width: 300, height: 200)
   }

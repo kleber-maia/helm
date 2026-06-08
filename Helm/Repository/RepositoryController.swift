@@ -117,7 +117,19 @@ extension GitRepositoryController: RepositoryPublishing
   }
 
   public func refsChanged() {
+    xtRepo.rebuildRefsIndex()
+    xtRepo.refsChanged()
+    repoWatcher?.resetRefsCache()
     repoWatcher?.publishers.send(.refs)
+  }
+
+  public func tryRefsChanged() -> Bool {
+    guard xtRepo.tryRefsChanged()
+    else { return false }
+
+    repoWatcher?.resetRefsCache()
+    repoWatcher?.publishers.send(.refs)
+    return true
   }
   
   public func post(progress: Float, total: Float) {

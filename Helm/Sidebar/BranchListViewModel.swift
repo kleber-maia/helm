@@ -19,10 +19,20 @@ extension BranchListItem: Identifiable, Hashable
   
   static func == (lhs: BranchListItem, rhs: BranchListItem) -> Bool
   {
-    lhs.refName == rhs.refName
+    lhs.refName == rhs.refName &&
+      lhs.trackingRefName == rhs.trackingRefName &&
+      lhs.isCurrent == rhs.isCurrent &&
+      lhs.graphStatus == rhs.graphStatus
   }
   
-  func hash(into hasher: inout Hasher) { hasher.combine(refName) }
+  func hash(into hasher: inout Hasher)
+  {
+    hasher.combine(refName)
+    hasher.combine(trackingRefName)
+    hasher.combine(isCurrent)
+    hasher.combine(graphStatus.ahead)
+    hasher.combine(graphStatus.behind)
+  }
 }
 
 class BranchListViewModel<Brancher: Branching,

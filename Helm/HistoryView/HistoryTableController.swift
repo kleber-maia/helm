@@ -25,12 +25,22 @@ final class HistoryTableController: NSViewController,
   var graphColumnOffset: CGFloat = 0
   private var isLoadingHistory = false
   private var pendingHistoryReload = false
+  private var currentBranch: LocalBranchRefName?
   
   func finishLoad(repository: any Repository)
   {
     history.repository = repository
+    currentBranch = repository.currentBranch
 
     loadHistory()
+
+    if let repository = repository as? HelmRepository {
+      sinks.append(repository.currentBranchPublisher.sinkOnMainQueue {
+        [weak self] branch in
+        self?.currentBranch = branch
+        self?.tableView.reloadData()
+      })
+    }
 
     if let controller = repoUIController {
       sinks.append(contentsOf: [
@@ -403,7 +413,8 @@ extension HistoryTableController: NSTableViewDelegate
                 ?? true)
 
         historyCell.displayMode = graphColumnVisible ? .titleOnly : .all
-        historyCell.configure(entry: entry, repository: repository)
+        historyCell.configure(entry: entry, repository: repository,
+                              currentBranch: currentBranch)
         historyCell.mutex = history.syncMutex
 
       case ColumnID.graph:
@@ -411,14 +422,16 @@ extension HistoryTableController: NSTableViewDelegate
 
         historyCell.displayMode = .graphOnly
         historyCell.graphOffset = graphColumnOffset
-        historyCell.configure(entry: entry, repository: repository)
+        historyCell.configure(entry: entry, repository: repository,
+                              currentBranch: currentBranch)
         historyCell.mutex = history.syncMutex
 
       case ColumnID.refs:
         let refsCell = result as! HistoryCellView
 
         refsCell.displayMode = .refsOnly
-        refsCell.configure(entry: entry, repository: repository)
+        refsCell.configure(entry: entry, repository: repository,
+                           currentBranch: currentBranch)
         refsCell.mutex = history.syncMutex
 
       default:

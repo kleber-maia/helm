@@ -92,6 +92,8 @@ final class HelmWindowController: NSWindowController,
   private var autoFetchTimer: Timer?
   private var lastFetchAt: Date?
   private var autoFetchInterval: TimeInterval = 60
+  private var tabTitleBranchName: String?
+  private var refreshLocalStateWhenQueueIdle = false
 
   nonisolated private static func currentAutoFetchInterval() -> TimeInterval
   {
@@ -146,15 +148,18 @@ final class HelmWindowController: NSWindowController,
 
     refreshAutoFetchInterval()
     let interval = autoFetchInterval
-    let elapsed = lastFetchAt.map { Date().timeIntervalSince($0) } ?? .infinity
     let nextDelay: TimeInterval
 
-    if elapsed >= interval {
+    if let lastFetchAt,
+       Date().timeIntervalSince(lastFetchAt) >= interval {
       refreshWithFetch()
       nextDelay = interval
     }
+    else if let lastFetchAt {
+      nextDelay = interval - Date().timeIntervalSince(lastFetchAt)
+    }
     else {
-      nextDelay = interval - elapsed
+      nextDelay = interval
     }
 
     autoFetchTimer = Timer.scheduledTimer(
@@ -174,17 +179,33 @@ final class HelmWindowController: NSWindowController,
     autoFetchTimer = nil
   }
 
+  func refreshLocalState()
+  {
+    if !repoController.tryRefsChanged() {
+      deferLocalRefreshUntilQueueIdle()
+    }
+
+    historyController.reload()
+    tabbedSidebarController?.refresh()
+    titleBarController.refreshCodexBarUsageAfterRepositoryRefresh()
+  }
+
+  func deferLocalRefreshUntilQueueIdle()
+  {
+    refreshLocalStateWhenQueueIdle = true
+  }
+
   func refreshWithFetch()
   {
     lastFetchAt = Date()
     guard let repo = repoDocument?.repository
           as? HelmRepository
     else {
-      historyController.reload()
-      tabbedSidebarController?.refresh()
-      titleBarController.refreshCodexBarUsageAfterRepositoryRefresh()
+      refreshLocalState()
       return
     }
+
+    refreshLocalState()
 
     let config = repo.config
     let remoteNames = repo.remoteNames()
@@ -210,9 +231,7 @@ final class HelmWindowController: NSWindowController,
         }
       }
       Task { @MainActor in
-        self.repoController.refsChanged()
-        self.historyController.reload()
-        self.titleBarController.refreshCodexBarUsageAfterRepositoryRefresh()
+        self.refreshLocalState()
       }
     }
   }
@@ -239,13 +258,26 @@ final class HelmWindowController: NSWindowController,
     
     sinks.append(contentsOf: [
       repo.currentBranchPublisher.sink {
-        [weak self] _ in
-        self?.updateMiniwindowTitle()
+        [weak self] branch in
+        DispatchQueue.main.async {
+          self?.tabTitleBranchName = branch?.name
+          self?.applyTabTitle()
+        }
       },
       workspaceCountModel.$counts.sinkOnMainQueue {
         [weak self] in
         self?.updateTabStatus(staged: $0.staged, unstaged: $0.unstaged)
         self?.applyTabTitle()
+      },
+      repoController.queue.busyPublisher.sinkOnMainQueue {
+        [weak self] busy in
+        guard let self,
+              !busy,
+              self.refreshLocalStateWhenQueueIdle
+        else { return }
+
+        self.refreshLocalStateWhenQueueIdle = false
+        self.refreshLocalState()
       }
     ])
     historyController.finishLoad(repository: repo)
@@ -489,8 +521,8 @@ final class HelmWindowController: NSWindowController,
 
     let plain: String
 
-    if let currentBranch = repo.currentBranch {
-      plain = "\(window.title) - \(currentBranch.name)"
+    if let currentBranch = tabTitleBranchName {
+      plain = "\(window.title) - \(currentBranch)"
     }
     else {
       plain = window.title
@@ -582,6 +614,7 @@ extension HelmWindowController: NSWindowDelegate
 
     Signpost.event(.windowControllerLoad)
     window.delegate = self
+    window.toolbar?.displayMode = .iconAndLabel
     sizeWindowIfNeeded(window)
     splitViewController = contentViewController as? NSSplitViewController
     titleBarController.splitView = splitViewController.splitView

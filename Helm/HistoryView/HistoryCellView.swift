@@ -104,9 +104,10 @@ final class HistoryCellView: NSTableCellView
   }
 
   func configure(entry: CommitEntry<GitCommit>,
-                 repository: any Branching & CommitReferencing)
+                 repository: any CommitReferencing,
+                 currentBranch: LocalBranchRefName?)
   {
-    currentBranch = repository.currentBranch
+    self.currentBranch = currentBranch
     refs = repository.refs(at: entry.commit.id)
     setLabel(entry.commit.message ?? "(no message)")
     self.entry = entry
