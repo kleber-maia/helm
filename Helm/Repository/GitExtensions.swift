@@ -83,20 +83,43 @@ extension git_remote_callbacks
       let allowed = git_credential_t(allowed)
       
       if allowed.contains(GIT_CREDENTIAL_SSH_KEY) {
-        var result: Int32 = 1
+        let urlString = urlCString.flatMap { String(cString: $0) }
+        let urlObject = urlString.flatMap { URL(string: $0) }
+        let userName = userCString.map { String(cString: $0) } ??
+          urlObject?.user ?? "git"
+        var result = userName.withCString {
+          git_cred_ssh_key_from_agent(cred, $0)
+        }
+
+        if result == 0 {
+          return 0
+        }
+        else {
+          let error = RepoError(gitCode: git_error_code(rawValue: result))
+
+          repoLogger.debug("Could not load ssh-agent key: \(error))")
+        }
         
-        for path in sshKeyPaths() {
-          let publicPath = path.appending(".pub")
-          
-          result = git_cred_ssh_key_new(cred, userCString, publicPath, path, "")
-          if result == 0 {
-            break
+        result = userName.withCString {
+          userName in
+          var keyResult: Int32 = 1
+
+          for path in sshKeyPaths() {
+            let publicPath = path.appending(".pub")
+
+            keyResult = git_cred_ssh_key_new(cred, userName,
+                                             publicPath, path, "")
+            if keyResult == 0 {
+              break
+            }
+            else {
+              let error = RepoError(gitCode: git_error_code(rawValue: keyResult))
+
+              repoLogger.debug("Could not load ssh key for \(path): \(error))")
+            }
           }
-          else {
-            let error = RepoError(gitCode: git_error_code(rawValue: result))
-            
-            repoLogger.debug("Could not load ssh key for \(path): \(error))")
-          }
+
+          return keyResult
         }
         if result == 0 {
           return 0
