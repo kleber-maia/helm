@@ -150,8 +150,13 @@ final class HelmWindowController: NSWindowController,
     let interval = autoFetchInterval
     let nextDelay: TimeInterval
 
-    if let lastFetchAt,
-       Date().timeIntervalSince(lastFetchAt) >= interval {
+    if lastFetchAt == nil {
+      repoLogger.publicInfo("autoFetch initial")
+      refreshWithFetch()
+      nextDelay = interval
+    }
+    else if let lastFetchAt,
+            Date().timeIntervalSince(lastFetchAt) >= interval {
       refreshWithFetch()
       nextDelay = interval
     }
@@ -198,9 +203,11 @@ final class HelmWindowController: NSWindowController,
   func refreshWithFetch()
   {
     lastFetchAt = Date()
+    repoLogger.publicInfo("refreshWithFetch begin")
     guard let repo = repoDocument?.repository
           as? HelmRepository
     else {
+      repoLogger.publicInfo("refreshWithFetch localOnly reason=notHelmRepository")
       refreshLocalState()
       return
     }
@@ -210,28 +217,51 @@ final class HelmWindowController: NSWindowController,
     let config = repo.config
     let remoteNames = repo.remoteNames()
 
+    guard !remoteNames.isEmpty
+    else {
+      repoLogger.publicInfo("refreshWithFetch noRemotes")
+      return
+    }
+
+    repoLogger.publicInfo("""
+        refreshWithFetch enqueue remotes=\(remoteNames.joined(separator: ","))
+        """)
     repoController.queue.executeOffMainThread {
       for name in remoteNames {
         guard let remote = repo.remote(named: name)
-        else { continue }
+        else {
+          repoLogger.publicError("refreshWithFetch missingRemote name=\(name)")
+          continue
+        }
 
+        let started = Date()
+        let callbacks = RemoteCallbacks(passwordBlock: { [weak self] in
+          self?.passwordPrompt(for: remote.url)
+        })
         let options = FetchOptions(
               downloadTags: config.fetchTags(remote: name),
               pruneBranches: config.fetchPrune(remote: name),
-              callbacks: RemoteCallbacks())
+              callbacks: callbacks)
 
         do {
+          repoLogger.publicInfo("refreshWithFetch fetch begin remote=\(name)")
           try repo.fetch(remote: remote, options: options)
+          repoLogger.publicInfo("""
+              refreshWithFetch fetch end remote=\(name) \
+              duration=\(Date().timeIntervalSince(started))
+              """)
         }
         catch {
-          // Silent — a failed fetch (offline, auth) should not
-          // block the local UI reload that follows.
-          repoLogger.debug(
-              "Refresh fetch failed for \(name): \(error)")
+          repoLogger.publicError("""
+              refreshWithFetch fetch failed remote=\(name) \
+              duration=\(Date().timeIntervalSince(started)) \
+              error=\(String(describing: error))
+              """)
         }
       }
       Task { @MainActor in
         self.refreshLocalState()
+        repoLogger.publicInfo("refreshWithFetch end")
       }
     }
   }
@@ -466,30 +496,47 @@ final class HelmWindowController: NSWindowController,
 
   nonisolated func passwordPrompt(for remoteURL: URL?) -> (String, String)?
   {
+    let host = remoteURL?.host ?? ""
+    let started = Date()
+
+    repoLogger.publicInfo("""
+        passwordPrompt begin host=\(host.isEmpty ? "[empty]" : host)
+        """)
     guard !Thread.isMainThread
     else {
+      repoLogger.publicError("passwordPrompt failed reason=mainThread")
       assertionFailure("password prompt called on the main thread")
       return nil
     }
 
+    repoLogger.publicDebug("passwordPrompt createSheet request")
     let sheetController = DispatchQueue.main.sync {
       PasswordPanelController()
     }
+    repoLogger.publicDebug("passwordPrompt window request")
     guard let window = DispatchQueue.main.sync(execute: {
       MainActor.assumeIsolated {
         self.window
       }
     })
-    else { return nil }
+    else {
+      repoLogger.publicError("passwordPrompt failed reason=missingWindow")
+      return nil
+    }
 
-    let host = remoteURL?.host ?? ""
     let path = remoteURL?.path ?? ""
     let port = UInt16(remoteURL?.port ?? remoteURL?.defaultPort ?? 80)
 
-    return sheetController.getPassword(parentWindow: window,
-                                       host: host,
-                                       path: path,
-                                       port: port)
+    let result = sheetController.getPassword(parentWindow: window,
+                                             host: host,
+                                             path: path,
+                                             port: port)
+
+    repoLogger.publicInfo("""
+        passwordPrompt end result=\(result == nil ? "nil" : "credentials") \
+        duration=\(Date().timeIntervalSince(started))
+        """)
+    return result
   }
 
   func remoteCallbacks(for remoteURL: URL?) -> RemoteCallbacks

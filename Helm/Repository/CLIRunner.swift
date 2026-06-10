@@ -34,8 +34,13 @@ public struct CLIRunner
   /// - Parameter args: Command arguments to be passed
   public func run(inputData: Data? = nil, args: [String]) throws -> Data
   {
-    cliLogger.debug("""
-        command = \((toolPath as NSString).lastPathComponent) \(args.joined(separator: " "))
+    let started = Date()
+    let command = "\((toolPath as NSString).lastPathComponent) " +
+                  args.joined(separator: " ")
+
+    cliLogger.publicInfo("""
+        cli begin cwd=\(workingDir) inputBytes=\(inputData?.count ?? 0) \
+        command=\(command)
         """)
     
     let task = Process()
@@ -65,7 +70,16 @@ public struct CLIRunner
     
     task.standardOutput = pipe
     task.standardError = errorPipe
-    try task.run()
+    do {
+      try task.run()
+    }
+    catch {
+      cliLogger.publicError("""
+          cli launch failed cwd=\(workingDir) command=\(command) \
+          error=\(String(describing: error))
+          """)
+      throw error
+    }
     outputReader.start()
     errorReader.start()
     
@@ -95,15 +109,24 @@ public struct CLIRunner
                                               args: args,
                                               status: task.terminationStatus)
       
-      cliLogger.debug("output = \(string)")
-      cliLogger.debug("error = \(errorString)")
+      cliLogger.publicError("""
+          cli failed status=\(task.terminationStatus) \
+          duration=\(Date().timeIntervalSince(started)) command=\(command)
+          """)
+      cliLogger.publicDebug("cli stdout=\(string)")
+      cliLogger.publicDebug("cli stderr=\(errorString)")
       throw NSError(domain: HelmErrorDomainCLI, code: Int(task.terminationStatus),
                     userInfo: [NSLocalizedDescriptionKey: description,
                                HelmErrorOutputKey: string,
                                HelmErrorErrorOutputKey: errorString,
                                HelmErrorArgsKey: args.joined(separator: " ")])
     }
-    
+
+    cliLogger.publicInfo("""
+        cli end status=\(task.terminationStatus) outputBytes=\(output.count) \
+        errorBytes=\(errorOutput.count) duration=\(Date().timeIntervalSince(started)) \
+        command=\(command)
+        """)
     return output
   }
 

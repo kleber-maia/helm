@@ -59,12 +59,14 @@ public final class GitRepositoryController: RepositoryController
     self.queue = TaskQueue(id: Self.taskQueueID(path: repository.repoURL.path))
     self.configWatcher = ConfigWatcher(repository: repository)
 
+    repoLogger.publicInfo("controller init path=\(repository.repoURL.path)")
     repoWatcher = RepositoryWatcher(controller: self)
     workspaceWatcher = WorkspaceWatcher(controller: self)
 
     workspaceSink = workspaceWatcher?.publisher
       .sinkOnMainQueue { // main queue might not be necessary
         [weak self] _ in
+        repoLogger.publicDebug("controller workspace event invalidating index")
         self?.invalidateIndex()
       }
     repository.controller = self
@@ -72,6 +74,7 @@ public final class GitRepositoryController: RepositoryController
   
   deinit
   {
+    repoLogger.publicInfo("controller deinit path=\(self.xtRepo.repoURL.path)")
     repoWatcher?.stop()
     configWatcher.stop()
     workspaceWatcher?.stop()
@@ -113,26 +116,41 @@ extension GitRepositoryController: RepositoryPublishing
   }
 
   public func indexChanged() {
+    repoLogger.publicInfo("publisher send type=index path=\(self.xtRepo.repoURL.path)")
     repoWatcher!.publishers.send(.index)
   }
 
   public func refsChanged() {
+    repoLogger.publicInfo("""
+        publisher refsChanged requested path=\(self.xtRepo.repoURL.path)
+        """)
     xtRepo.rebuildRefsIndex()
     xtRepo.refsChanged()
     repoWatcher?.resetRefsCache()
+    repoLogger.publicInfo("publisher send type=refs path=\(self.xtRepo.repoURL.path)")
     repoWatcher?.publishers.send(.refs)
   }
 
   public func tryRefsChanged() -> Bool {
     guard xtRepo.tryRefsChanged()
-    else { return false }
+    else {
+      repoLogger.publicError("""
+          publisher tryRefsChanged skipped path=\(self.xtRepo.repoURL.path)
+          """)
+      return false
+    }
 
     repoWatcher?.resetRefsCache()
+    repoLogger.publicInfo("publisher send type=refs path=\(self.xtRepo.repoURL.path)")
     repoWatcher?.publishers.send(.refs)
     return true
   }
   
   public func post(progress: Float, total: Float) {
+    repoLogger.publicDebug("""
+        publisher send type=progress path=\(self.xtRepo.repoURL.path) \
+        progress=\(progress) total=\(total)
+        """)
     progressSubject.send((progress, total))
   }
 }
@@ -147,6 +165,7 @@ extension GitRepositoryController
 
   public func invalidateIndex()
   {
+    repoLogger.publicDebug("cache invalidateIndex path=\(self.xtRepo.repoURL.path)")
     cache.invalidateIndex()
   }
 }

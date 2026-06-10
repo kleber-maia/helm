@@ -4,6 +4,7 @@ import Foundation
 public class FileEventStream
 {
   var stream: FSEventStreamRef!
+  private let path: String
   let eventCallback: ([String]) -> Void
   
   static let rescanFlags =
@@ -26,7 +27,11 @@ public class FileEventStream
                latency: CFTimeInterval = 0.5,
                callback: @escaping ([String]) -> Void)
   {
+    self.path = path
     self.eventCallback = callback
+    repoLogger.publicInfo("""
+        fsevents create path=\(path) excludes=\(excludePaths.joined(separator: ","))
+        """)
     
     let unsafeSelf = UnsafeMutableRawPointer(
         Unmanaged.passUnretained(self).toOpaque())
@@ -44,10 +49,17 @@ public class FileEventStream
       
       for index in 0..<eventCount
           where (flags[index] & FileEventStream.rescanFlags) != 0 {
+        repoLogger.publicError("""
+            fsevents rescanRequired path=\(contextSelf.path) \
+            flag=\(flags[index])
+            """)
         contextSelf.eventCallback([])
         return
       }
       
+      repoLogger.publicDebug("""
+          fsevents event path=\(contextSelf.path) count=\(eventCount)
+          """)
       contextSelf.eventCallback(cfPaths)
     }
     
@@ -59,6 +71,7 @@ public class FileEventStream
                kFSEventStreamCreateFlagNoDefer |
                kFSEventStreamCreateFlagFileEvents))
     if self.stream == nil {
+      repoLogger.publicError("fsevents create failed path=\(path)")
       return nil
     }
     
@@ -67,6 +80,7 @@ public class FileEventStream
     }
     FSEventStreamSetDispatchQueue(self.stream, queue)
     FSEventStreamStart(self.stream)
+    repoLogger.publicInfo("fsevents start path=\(path)")
   }
   
   deinit
@@ -81,6 +95,7 @@ public class FileEventStream
     guard stream != nil
     else { return }
     
+    repoLogger.publicInfo("fsevents stop path=\(self.path)")
     FSEventStreamStop(stream)
     FSEventStreamInvalidate(stream)
     FSEventStreamRelease(stream)

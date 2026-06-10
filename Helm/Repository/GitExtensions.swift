@@ -52,6 +52,34 @@ extension git_remote_callbacks
 {
   private enum Callbacks
   {
+    private static func sanitizedURLDescription(_ urlCString: UnsafePointer<CChar>?)
+      -> String
+    {
+      guard let urlString = urlCString.flatMap({ String(cString: $0) })
+      else { return "[unknown]" }
+      guard var components = URLComponents(string: urlString)
+      else { return urlString }
+
+      components.user = nil
+      components.password = nil
+      components.query = nil
+      components.fragment = nil
+      return components.string ?? urlString
+    }
+
+    private static func credentialTypes(_ allowed: git_credential_t) -> String
+    {
+      var types: [String] = []
+
+      if allowed.contains(GIT_CREDENTIAL_SSH_KEY) {
+        types.append("ssh-key")
+      }
+      if allowed.contains(GIT_CREDENTIAL_USERPASS_PLAINTEXT) {
+        types.append("userpass")
+      }
+      return types.isEmpty ? "raw-\(allowed.rawValue)" : types.joined(separator: ",")
+    }
+
     private static func sshKeyPaths() -> [String]
     {
       let manager = FileManager.default
@@ -81,23 +109,38 @@ extension git_remote_callbacks
       guard let callbacks = RemoteCallbacks.fromPayload(payload)
       else { return -1 }
       let allowed = git_credential_t(allowed)
+      let remoteURL = sanitizedURLDescription(urlCString)
+      let providedUser = userCString.map { String(cString: $0) }
+
+      repoLogger.publicInfo("""
+          credential callback begin url=\(remoteURL) \
+          allowed=\(credentialTypes(allowed)) userProvided=\(providedUser != nil)
+          """)
       
       if allowed.contains(GIT_CREDENTIAL_SSH_KEY) {
         let urlString = urlCString.flatMap { String(cString: $0) }
         let urlObject = urlString.flatMap { URL(string: $0) }
-        let userName = userCString.map { String(cString: $0) } ??
-          urlObject?.user ?? "git"
+        let userName = providedUser ?? urlObject?.user ?? "git"
+        repoLogger.publicDebug("""
+            credential ssh-agent begin url=\(remoteURL) user=\(userName)
+            """)
         var result = userName.withCString {
           git_cred_ssh_key_from_agent(cred, $0)
         }
 
         if result == 0 {
+          repoLogger.publicInfo("""
+              credential ssh-agent success url=\(remoteURL) user=\(userName)
+              """)
           return 0
         }
         else {
           let error = RepoError(gitCode: git_error_code(rawValue: result))
 
-          repoLogger.debug("Could not load ssh-agent key: \(error))")
+          repoLogger.publicInfo("""
+              credential ssh-agent failed url=\(remoteURL) user=\(userName) \
+              error=\(String(describing: error))
+              """)
         }
         
         result = userName.withCString {
@@ -107,15 +150,24 @@ extension git_remote_callbacks
           for path in sshKeyPaths() {
             let publicPath = path.appending(".pub")
 
+            repoLogger.publicDebug("""
+                credential ssh-key begin url=\(remoteURL) path=\(path)
+                """)
             keyResult = git_cred_ssh_key_new(cred, userName,
                                              publicPath, path, "")
             if keyResult == 0 {
+              repoLogger.publicInfo("""
+                  credential ssh-key success url=\(remoteURL) path=\(path)
+                  """)
               break
             }
             else {
               let error = RepoError(gitCode: git_error_code(rawValue: keyResult))
 
-              repoLogger.debug("Could not load ssh key for \(path): \(error))")
+              repoLogger.publicDebug("""
+                  credential ssh-key failed url=\(remoteURL) path=\(path) \
+                  error=\(String(describing: error))
+                  """)
             }
           }
 
@@ -124,28 +176,43 @@ extension git_remote_callbacks
         if result == 0 {
           return 0
         }
+        repoLogger.publicInfo("""
+            credential ssh failed url=\(remoteURL) user=\(userName) \
+            result=\(result)
+            """)
       }
       if allowed.contains(GIT_CREDENTIAL_USERPASS_PLAINTEXT) {
         let keychain = KeychainStorage.shared
         let urlString = urlCString.flatMap { String(cString: $0) }
         let urlObject = urlString.flatMap { URL(string: $0) }
-        let userName = userCString.map { String(cString: $0) } ??
-                       urlObject?.impliedUserName
+        let userName = providedUser ?? urlObject?.impliedUserName
         
         if let url = urlObject,
            let user = userName,
            let password = keychain.find(url: url, account: userName) ??
                           keychain.find(url: url.withPath(""),
                                         account: userName) {
+          repoLogger.publicInfo("""
+              credential keychain success url=\(remoteURL) user=\(user)
+              """)
           return git_cred_userpass_plaintext_new(cred, user, password)
         }
+        repoLogger.publicInfo("""
+            credential keychain miss url=\(remoteURL) \
+            userProvided=\(userName != nil)
+            """)
         if let passwordBlock = callbacks.pointee.passwordBlock,
            let (user, password) = passwordBlock() {
+          repoLogger.publicInfo("""
+              credential passwordBlock success url=\(remoteURL) user=\(user)
+              """)
           return git_cred_userpass_plaintext_new(cred, user, password)
         }
+        repoLogger.publicInfo("credential passwordBlock empty url=\(remoteURL)")
       }
       // The documentation says to return >0 to indicate no credentials
       // acquired, but that leads to an assertion failure.
+      repoLogger.publicError("credential callback failed url=\(remoteURL)")
       return -1
     }
     

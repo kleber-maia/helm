@@ -11,44 +11,57 @@ public final class GitCloner: Cloning
                     publisher: RemoteProgressPublisher) throws
     -> (any FullRepository)?
   {
-    try branch.withCString {
-      (cBranch) in
-      try git_remote_callbacks.withCallbacks(publisher.callbacks) {
-        (gitCallbacks) in
-        var options = git_clone_options.defaultOptions()
-        
-        options.bare = 0
-        options.checkout_branch = cBranch
-        options.fetch_opts.callbacks = gitCallbacks
-        
-        let gitRepo: OpaquePointer
-        
-        do {
-          gitRepo = try OpaquePointer.from {
-            git_clone(&$0, source.absoluteString, destination.path, &options)
-          }
-        }
-        catch let error as RepoError {
-          publisher.error(error)
-          throw error
-        }
-        catch let error  {
-          publisher.error(.unexpected)
-          throw error
-        }
-        guard let repo = try? HelmRepository(gitRepo: gitRepo)
-        else { return nil }
+    guard let gitPath = HelmRepository.gitPath()
+    else { throw RepoError.unexpected }
 
-        if recurseSubmodules {
-          for sub in repo.submodules() {
-            try sub.update(callbacks: publisher.callbacks)
-            // recurse
-          }
-        }
-        
-        publisher.finished()
-        return repo
-      }
+    let started = Date()
+    var args = ["clone"]
+
+    if !branch.isEmpty {
+      args += ["--branch", branch]
+    }
+    if recurseSubmodules {
+      args.append("--recurse-submodules")
+    }
+    args += [source.absoluteString, destination.path]
+
+    repoLogger.publicInfo("""
+        clone begin source=\(source.absoluteString) destination=\(destination.path) \
+        branch=\(branch.isEmpty ? "[default]" : branch) recurse=\(recurseSubmodules)
+        """)
+
+    do {
+      let runner = CLIRunner(toolPath: gitPath,
+                             workingDir: destination.deletingLastPathComponent().path)
+
+      _ = try runner.run(args: args)
+      guard let repo = HelmRepository(url: destination)
+      else { throw RepoError.unexpected }
+
+      publisher.finished()
+      repoLogger.publicInfo("""
+          clone end destination=\(destination.path) \
+          duration=\(Date().timeIntervalSince(started))
+          """)
+      return repo
+    }
+    catch let error as RepoError {
+      publisher.error(error)
+      repoLogger.publicError("""
+          clone failed destination=\(destination.path) \
+          duration=\(Date().timeIntervalSince(started)) \
+          error=\(String(describing: error))
+          """)
+      throw error
+    }
+    catch {
+      publisher.error(.unexpected)
+      repoLogger.publicError("""
+          clone failed destination=\(destination.path) \
+          duration=\(Date().timeIntervalSince(started)) \
+          error=\(String(describing: error))
+          """)
+      throw error
     }
   }
 }

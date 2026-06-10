@@ -107,11 +107,13 @@ final class HistoryTableController: NSViewController,
   {
     if isLoadingHistory {
       pendingHistoryReload = true
+      repoLogger.publicInfo("history load pendingReload")
       return
     }
 
     isLoadingHistory = true
     pendingHistoryReload = false
+    repoLogger.publicInfo("history load begin")
 
     let history = self.history
     let repository = self.repository
@@ -143,6 +145,7 @@ final class HistoryTableController: NSViewController,
       walker.setSorting([.topological, .time])
       
       let refs = repository.allRefs()
+      repoLogger.publicInfo("history walk refs count=\(refs.count)")
       
       for ref in refs where ref.fullPath != "refs/stash" {
         if let oid = repository.oid(forRef: ref) {
@@ -155,6 +158,10 @@ final class HistoryTableController: NSViewController,
           repository.commit(forOID: $0) as? GitCommit
         })
       }
+      repoLogger.publicInfo("""
+          history walk end generation=\(generation) \
+          commits=\(history.withSync { history.entries.count })
+          """)
       
       DispatchQueue.global(qos: .utility).async {
         // Get off the queue thread, but run this as a queue task so that
@@ -179,22 +186,39 @@ final class HistoryTableController: NSViewController,
                                  reloadTable: Bool)
   {
     guard history.isCurrentGeneration(generation)
-    else { return }
+    else {
+      repoLogger.publicInfo("""
+          history load ignored generation=\(generation) reason=stale
+          """)
+      return
+    }
 
     isLoadingHistory = false
 
     if pendingHistoryReload {
+      repoLogger.publicInfo("""
+          history load restart generation=\(generation) reason=pendingReload
+          """)
       loadHistory()
       return
     }
 
     guard reloadTable
-    else { return }
+    else {
+      repoLogger.publicInfo("""
+          history load end generation=\(generation) reload=false
+          """)
+      return
+    }
 
     updateGraphColumnOffset()
     tableView?.reloadData()
     ensureSelection()
     updateHeadGraphColor()
+    repoLogger.publicInfo("""
+        history load end generation=\(generation) reload=true \
+        rows=\(history.withSync { history.entries.count })
+        """)
   }
   
   /// Notifier for history processing progress

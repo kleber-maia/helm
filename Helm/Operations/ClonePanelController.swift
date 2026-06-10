@@ -216,32 +216,18 @@ final class ClonePanelController: NSWindowController
   {
     guard let url = URL(string: newURL)
     else { return .failure(.empty) }
-    guard validate(url: url),
-          let remote = GitRemote(url: url)
+    guard validate(url: url)
     else { return .failure(.invalid) }
     let name: String
     let branches: [String]
     let selectedBranch: String
-    let noPassword: () -> (String, String)? = { nil }
     
     name = url.path.lastPathComponent.deletingPathExtension
 
     do {
-      let (heads, defaultBranchRef) = try
-        remote.withConnection(direction: .fetch,
-                              callbacks: .init(passwordBlock: noPassword),
-                              action: {
-        (try $0.referenceAdvertisements(), $0.defaultBranch)
-      })
-      let defaultBranch = defaultBranchRef.map {
-        $0.droppingPrefix(RefPrefixes.heads)
-      }
-
-      branches = heads.compactMap { head in
-        head.name.hasPrefix(RefPrefixes.heads) ?
-            head.name.droppingPrefix(RefPrefixes.heads) : nil
-      }
-      if let branch = [defaultBranch, "main", "master"]
+      let refs = try remoteRefs(url: url)
+      branches = refs.branches
+      if let branch = [refs.defaultBranch, "main", "master"]
           .compactMap({ $0 })
           .first(where: { branches.contains($0) }) {
         selectedBranch = branch
@@ -265,6 +251,47 @@ final class ClonePanelController: NSWindowController
     return .success((name: name,
                      branches: branches,
                      selectedBranch: selectedBranch))
+  }
+
+  nonisolated
+  private static func remoteRefs(url: URL) throws
+    -> (branches: [String], defaultBranch: String?)
+  {
+    guard let gitPath = HelmRepository.gitPath()
+    else { throw RepoError.unexpected }
+    let runner = CLIRunner(toolPath: gitPath,
+                           workingDir: FileManager.default.currentDirectoryPath)
+    let output = try runner.run(args: [
+      "ls-remote",
+      "--symref",
+      url.absoluteString,
+      "HEAD",
+      "refs/heads/*",
+    ])
+    let string = String(data: output, encoding: .utf8) ?? ""
+    var branches = [String]()
+    var defaultBranch: String?
+
+    for line in string.split(whereSeparator: \.isNewline) {
+      let parts = line.split(separator: "\t")
+
+      guard parts.count == 2
+      else { continue }
+
+      if parts[0].hasPrefix("ref: "),
+         parts[1] == "HEAD" {
+        let ref = parts[0].dropFirst(5)
+
+        if ref.hasPrefix(RefPrefixes.heads) {
+          defaultBranch = String(ref).droppingPrefix(RefPrefixes.heads)
+        }
+      }
+      else if parts[1].hasPrefix(RefPrefixes.heads) {
+        branches.append(String(parts[1]).droppingPrefix(RefPrefixes.heads))
+      }
+    }
+
+    return (Array(Set(branches)).sorted(), defaultBranch)
   }
 }
 

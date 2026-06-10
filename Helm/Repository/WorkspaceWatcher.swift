@@ -22,6 +22,10 @@ final class WorkspaceWatcher
         callback: { [weak self] (paths) in self?.observeEvents(paths) })
     else { return nil }
     
+    repoLogger.publicInfo("""
+        watcher init type=workspace path=\(repository.repoURL.path) \
+        gitPath=\(repository.gitDirectoryPath)
+        """)
     self.stream = stream
   }
   
@@ -32,6 +36,7 @@ final class WorkspaceWatcher
   
   func stop()
   {
+    repoLogger.publicInfo("watcher stop type=workspace")
     stream.stop()
   }
   
@@ -45,7 +50,12 @@ final class WorkspaceWatcher
     if skipIgnored {
       let filteredPaths = paths.filter { !repository.isIgnored(path: $0) }
       guard !filteredPaths.isEmpty
-      else { return }
+      else {
+        repoLogger.publicDebug("""
+            watcher workspace ignoredAll count=\(paths.count)
+            """)
+        return
+      }
       
       changedPaths = filteredPaths
     }
@@ -53,6 +63,10 @@ final class WorkspaceWatcher
       changedPaths = paths
     }
   
+    repoLogger.publicInfo("""
+        watcher send type=workspace count=\(changedPaths.count) \
+        paths=\(changedPaths.joined(separator: ","))
+        """)
     self.subject.send(changedPaths)
   }
 }

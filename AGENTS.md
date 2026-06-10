@@ -132,8 +132,7 @@ Native dependencies:
 | Library | Source | Purpose |
 |---------|--------|---------|
 | libgit2 | Git submodule + prebuilt `libgit2-mac.a` | Git operations |
-| OpenSSL | Homebrew (`openssl@3` or `openssl`) | SSH support in libgit2 |
-| libssh2 | Homebrew | SSH support in libgit2 |
+| OpenSSL | Homebrew (`openssl@3` or `openssl`) | Native dependency used by libgit2 builds |
 
 ## Code Style & Conventions
 

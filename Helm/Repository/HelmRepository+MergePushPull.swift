@@ -6,58 +6,81 @@ extension HelmRepository: RemoteManagement
                    remote: GitRemote,
                    callbacks: RemoteCallbacks) throws
   {
-    try performWriting {
-      var result: Int32
-      let refspecs = branches.map { branch in
-        if let trackingBranch = localBranch(named: branch)?.trackingBranch,
-           trackingBranch.remoteName == remote.name {
-          "\(branch.fullPath):\(trackingBranch.referenceName.fullPath)"
-        }
-        else {
-          "\(branch.fullPath):refs/heads/\(branch.name)"
-        }
+    let started = Date()
+    guard let remoteName = remote.name
+    else { throw RepoError.notFound }
+
+    repoLogger.publicInfo("""
+        remote push begin remote=\(remoteName) branches=\(branches.count)
+        """)
+    let refspecs = branches.map { branch in
+      if let trackingBranch = localBranch(named: branch)?.trackingBranch,
+         trackingBranch.remoteName == remoteName,
+         trackingBranch.referenceName.localName != branch.name {
+        repoLogger.publicInfo("""
+            remote push upstreamNameMismatch remote=\(remoteName) \
+            branch=\(branch.fullPath) upstream=\(trackingBranch.referenceName.fullPath)
+            """)
       }
 
-      result = refspecs.withGitStringArray {
-        (refspecs) in
-        git_remote_callbacks.withCallbacks(callbacks) {
-          (gitCallbacks) in
-          var mutableArray = refspecs
-          var options = git_push_options.defaultOptions()
+      return "\(branch.fullPath):refs/heads/\(branch.name)"
+    }
 
-          options.callbacks = gitCallbacks
-          return Signpost.interval(.networkOperation) {
-            git_remote_push(remote.remote, &mutableArray, &options)
-          }
-        }
+    repoLogger.publicInfo("""
+        remote push refspecs remote=\(remoteName) \
+        refspecs=\(refspecs.joined(separator: ","))
+        """)
+
+    do {
+      _ = try Signpost.interval(.networkOperation) {
+        try executeGit(args: ["push", remoteName] + refspecs, writes: true)
       }
-      try RepoError.throwIfGitError(result)
+      repoLogger.publicInfo("""
+          remote push end remote=\(remoteName) transport=cli \
+          duration=\(Date().timeIntervalSince(started))
+          """)
+    }
+    catch {
+      repoLogger.publicError("""
+          remote push failed remote=\(remoteName) transport=cli \
+          duration=\(Date().timeIntervalSince(started)) \
+          error=\(String(describing: error))
+          """)
+      throw error
     }
   }
   
   public func fetch(remote: GitRemote, options: FetchOptions) throws
   {
-    try performWriting {
-      var refspecs = git_strarray.init()
-      var result: Int32
-      
-      result = git_remote_get_fetch_refspecs(&refspecs, remote.remote)
-      try RepoError.throwIfGitError(result)
-      defer {
-        git_strarray_free(&refspecs)
+    let started = Date()
+    let remoteName = remote.name ?? "[unknown]"
+
+    repoLogger.publicInfo("remote fetch begin remote=\(remoteName)")
+    var args = ["fetch", remoteName]
+
+    if options.downloadTags {
+      args.append("--tags")
+    }
+    if options.pruneBranches {
+      args.append("--prune")
+    }
+
+    do {
+      _ = try Signpost.interval(.networkOperation) {
+        try executeGit(args: args, writes: true)
       }
-      
-      let message = "fetching remote \(remote.name ?? "[unknown]")"
-      
-      result = git_fetch_options.withOptions(options) {
-        withUnsafePointer(to: $0) {
-          (options) in
-          Signpost.interval(.networkOperation) {
-            git_remote_fetch(remote.remote, &refspecs, options, message)
-          }
-        }
-      }
-      try RepoError.throwIfGitError(result)
+      repoLogger.publicInfo("""
+          remote fetch end remote=\(remoteName) transport=cli \
+          duration=\(Date().timeIntervalSince(started))
+          """)
+    }
+    catch {
+      repoLogger.publicError("""
+          remote fetch failed remote=\(remoteName) transport=cli \
+          duration=\(Date().timeIntervalSince(started)) \
+          error=\(String(describing: error))
+          """)
+      throw error
     }
   }
   
@@ -65,6 +88,10 @@ extension HelmRepository: RemoteManagement
                    remote: GitRemote,
                    options: FetchOptions) throws
   {
+    repoLogger.publicInfo("""
+        remote pull begin remote=\(remote.name ?? "[unknown]") \
+        branch=\(branch.referenceName.fullPath)
+        """)
     try fetch(remote: remote, options: options)
     
     var mergeBranch = branch
@@ -75,30 +102,42 @@ extension HelmRepository: RemoteManagement
     }
     
     try merge(branch: mergeBranch)
+    repoLogger.publicInfo("""
+        remote pull end remote=\(remote.name ?? "[unknown]") \
+        branch=\(branch.referenceName.fullPath)
+        """)
   }
 
   public func deleteRemoteBranch(named branch: RemoteBranchRefName,
                                  remote: GitRemote,
                                  callbacks: RemoteCallbacks) throws
   {
-    try performWriting {
-      let refspec = ":refs/heads/\(branch.localName)"
-      var result: Int32
+    let started = Date()
+    guard let remoteName = remote.name
+    else { throw RepoError.notFound }
 
-      result = [refspec].withGitStringArray {
-        (refspecs) in
-        git_remote_callbacks.withCallbacks(callbacks) {
-          (gitCallbacks) in
-          var mutableArray = refspecs
-          var options = git_push_options.defaultOptions()
+    repoLogger.publicInfo("""
+        remote deleteBranch begin remote=\(remoteName) \
+        branch=\(branch.fullPath)
+        """)
+    let refspec = ":refs/heads/\(branch.localName)"
 
-          options.callbacks = gitCallbacks
-          return Signpost.interval(.networkOperation) {
-            git_remote_push(remote.remote, &mutableArray, &options)
-          }
-        }
+    do {
+      _ = try Signpost.interval(.networkOperation) {
+        try executeGit(args: ["push", remoteName, refspec], writes: true)
       }
-      try RepoError.throwIfGitError(result)
+      repoLogger.publicInfo("""
+          remote deleteBranch end remote=\(remoteName) transport=cli \
+          duration=\(Date().timeIntervalSince(started))
+          """)
+    }
+    catch {
+      repoLogger.publicError("""
+          remote deleteBranch failed remote=\(remoteName) transport=cli \
+          duration=\(Date().timeIntervalSince(started)) \
+          error=\(String(describing: error))
+          """)
+      throw error
     }
   }
 }

@@ -5,7 +5,7 @@ extension HelmWindowController
   @IBAction
   func refresh(_ sender: AnyObject)
   {
-    refreshLocalState()
+    refreshWithFetch()
   }
   
   @IBAction

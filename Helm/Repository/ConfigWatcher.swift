@@ -17,6 +17,7 @@ final class ConfigWatcher
   init(repository: HelmRepository)
   {
     self.repository = repository
+    repoLogger.publicInfo("watcher init type=config path=\(repository.repoURL.path)")
     
     var pathBuf = git_buf()
     var result: Int32
@@ -35,6 +36,7 @@ final class ConfigWatcher
       
       let repoPath = String(cString: pathBuf.ptr)
       
+      repoLogger.publicDebug("watcher start type=repoConfig path=\(repoPath)")
       repoConfigStream = FileEventStream(path: repoPath,
                                          excludePaths: [],
                                          queue: .main,
@@ -44,13 +46,16 @@ final class ConfigWatcher
                                        excludePaths: [],
                                        queue: .main,
                                        callback: callback)
+    repoLogger.publicDebug("watcher start type=userConfig path=~/.gitconfig")
     globalConfigStream = FileEventStream(path: "/etc/gitconfig",
                                          excludePaths: [], queue: .main,
                                          callback: callback)
+    repoLogger.publicDebug("watcher start type=globalConfig path=/etc/gitconfig")
   }
   
   func stop()
   {
+    repoLogger.publicInfo("watcher stop type=config")
     repoConfigStream.stop()
     userConfigStream.stop()
     globalConfigStream.stop()
@@ -61,6 +66,10 @@ final class ConfigWatcher
     guard let repository = self.repository
     else { return }
     
+    repoLogger.publicInfo("""
+        watcher send type=config count=\(paths.count) \
+        paths=\(paths.joined(separator: ","))
+        """)
     repository.config.invalidate()
     configSubject.send()
   }

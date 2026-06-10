@@ -70,8 +70,8 @@ extension HelmRepository: CommitReferencing
         git_reference_free(reference)
       }
       
-      let repo = payload!.bindMemory(to: HelmRepository.self,
-                                     capacity: 1).pointee
+      let repo = payload!.bindMemory(to: CallbackPayload.self,
+                                     capacity: 1).pointee.repo
       
       guard let rawName = git_reference_name(reference),
             let name = String(validatingUTF8: rawName)
@@ -103,11 +103,9 @@ extension HelmRepository: CommitReferencing
   /// Returns a list of refs that point to the given commit.
   public func refs(at oid: GitOID) -> [String]
   {
-    objc_sync_enter(self)
-    defer {
-      objc_sync_exit(self)
+    mutex.withLock {
+      refsIndex[oid.sha] ?? []
     }
-    return refsIndex[oid.sha] ?? []
   }
   
   /// Returns a list of all ref names.

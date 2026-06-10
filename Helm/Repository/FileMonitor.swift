@@ -14,9 +14,11 @@ final class FileMonitor
   init?(path: String)
   {
     self.path = path
+    repoLogger.publicInfo("fileMonitor create path=\(path)")
     
     makeSource()
     if sourceMutex.withLock({ source }) == nil {
+      repoLogger.publicError("fileMonitor create failed path=\(path)")
       return nil
     }
   }
@@ -25,7 +27,10 @@ final class FileMonitor
   {
     fd = open(path, O_EVTONLY)
     guard fd >= 0
-    else { return }
+    else {
+      repoLogger.publicError("fileMonitor open failed path=\(self.path) errno=\(errno)")
+      return
+    }
     
     let source = DispatchSource.makeFileSystemObjectSource(
         fileDescriptor: fd,
@@ -43,8 +48,12 @@ final class FileMonitor
       guard let source = self.source
       else { return }
 
-      subject.send((path, source.data.rawValue))
+      repoLogger.publicInfo("""
+          fileMonitor event path=\(self.path) flags=\(source.data.rawValue)
+          """)
+      self.subject.send((self.path, source.data.rawValue))
       if source.data.contains(.delete) {
+        repoLogger.publicInfo("fileMonitor recreateAfterDelete path=\(self.path)")
         source.cancel()
         close(self.fd)
         self.sourceMutex.withLock {
@@ -57,10 +66,12 @@ final class FileMonitor
     sourceMutex.withLock {
       self.source = source
     }
+    repoLogger.publicInfo("fileMonitor start path=\(self.path)")
   }
   
   deinit
   {
+    repoLogger.publicInfo("fileMonitor stop path=\(self.path)")
     source?.cancel()
     close(fd)
   }

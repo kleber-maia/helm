@@ -23,6 +23,9 @@ extension HelmWindowController
       -> OperationController?
   {
     if let operation = currentOperation {
+      repoLogger.publicError("""
+          operation start blocked existing=\(operation.operationName)
+          """)
       NSLog("Can't start new operation, already have \(operation)")
       showErrorMessage(error: .alreadyWriting)
       return nil
@@ -31,18 +34,30 @@ extension HelmWindowController
       let operation = factory()
 
       do {
+        repoLogger.publicInfo("operation start name=\(operation.operationName)")
         stopAutoFetch()
         currentOperation = operation
         try operation.start()
+        repoLogger.publicInfo("""
+            operation start returned name=\(operation.operationName)
+            """)
         return operation
       }
       catch let error as RepoError {
+        repoLogger.publicError("""
+            operation start failed name=\(operation.operationName) \
+            error=\(String(describing: error))
+            """)
         currentOperation = nil
         showErrorMessage(error: error)
         startAutoFetch()
         return nil
       }
       catch {
+        repoLogger.publicError("""
+            operation start failed name=\(operation.operationName) \
+            error=\(String(describing: error))
+            """)
         currentOperation = nil
         showErrorMessage(error: RepoError.unexpected)
         startAutoFetch()
@@ -75,8 +90,15 @@ extension HelmWindowController
   func operationEnded(_ operation: OperationController)
   {
     if currentOperation === operation {
+      repoLogger.publicInfo("operation cleared name=\(operation.operationName)")
       currentOperation = nil
       startAutoFetch()
+    }
+    else {
+      repoLogger.publicError("""
+          operation ended but not current name=\(operation.operationName) \
+          current=\(self.currentOperation?.operationName ?? "nil")
+          """)
     }
   }
 }

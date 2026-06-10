@@ -30,8 +30,12 @@ class PasswordOpController: SimpleOperationController
   nonisolated
   func getPassword() -> (String, String)?
   {
+    let started = Date()
+
+    repoLogger.publicInfo("password callback begin")
     guard !Thread.isMainThread
     else {
+      repoLogger.publicError("password callback failed reason=mainThread")
       assertionFailure("password callback on main thread")
       return nil
     }
@@ -39,6 +43,7 @@ class PasswordOpController: SimpleOperationController
       MainActor.assumeIsolated { passwordController == nil }
     })
     else {
+      repoLogger.publicError("password callback failed reason=sheetAlreadyOpen")
       assertionFailure("already have a password sheet")
       return nil
     }
@@ -51,12 +56,21 @@ class PasswordOpController: SimpleOperationController
     }
     guard let window = window,
           let urlInfo = self.urlInfo.value
-    else { return nil }
+    else {
+      repoLogger.publicError("password callback failed reason=missingWindow")
+      return nil
+    }
     
-    return controller.getPassword(parentWindow: window,
-                                  host: urlInfo.host,
-                                  path: urlInfo.path,
-                                  port: UInt16(urlInfo.port))
+    let result = controller.getPassword(parentWindow: window,
+                                        host: urlInfo.host,
+                                        path: urlInfo.path,
+                                        port: UInt16(urlInfo.port))
+
+    repoLogger.publicInfo("""
+        password callback end result=\(result == nil ? "nil" : "credentials") \
+        duration=\(Date().timeIntervalSince(started))
+        """)
+    return result
   }
   
   func setKeychainInfo(from url: URL)

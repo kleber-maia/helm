@@ -26,13 +26,6 @@ class FakeRemote: Remote
   func rename(_ name: String) throws {}
   func updateURLString(_ URLString: String?) throws {}
   func updatePushURLString(_ URLString: String?) throws {}
-
-  func withConnection<T>(direction: RemoteConnectionDirection,
-                         callbacks: RemoteCallbacks,
-                         action: (ConnectedRemote) throws -> T) throws -> T
-  {
-    try action(NullConnectedRemote())
-  }
 }
 
 class FakeLocalBranch: LocalBranch

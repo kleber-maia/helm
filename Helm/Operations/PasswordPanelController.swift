@@ -43,8 +43,14 @@ final class PasswordPanelController: SheetController
                    path: String = "",
                    port: UInt16 = 80) -> (String, String)?
   {
+    let started = Date()
+
+    repoLogger.publicInfo("""
+        password sheet wait begin host=\(host.isEmpty ? "[empty]" : host)
+        """)
     guard !Thread.isMainThread
     else {
+      repoLogger.publicError("password sheet failed reason=mainThread")
       assertionFailure("getPassword called on the main thread")
       return nil
     }
@@ -52,12 +58,18 @@ final class PasswordPanelController: SheetController
     let semaphore = DispatchSemaphore(value: 0)
 
     DispatchQueue.main.async { [self] in
+      repoLogger.publicInfo("""
+          password sheet present host=\(host.isEmpty ? "[empty]" : host)
+          """)
       if host.isEmpty {
         keychainCheck.isHidden = true
       }
       
       parentWindow.beginSheet(window!) {
         [self] (response) in
+        repoLogger.publicInfo("""
+            password sheet dismissed response=\(response.rawValue)
+            """)
         if response == .OK {
           result.value = (userName, password)
           if storeInKeychain {
@@ -70,6 +82,10 @@ final class PasswordPanelController: SheetController
       }
     }
     _ = semaphore.wait(timeout: .distantFuture)
+    repoLogger.publicInfo("""
+        password sheet wait end result=\(result.value == nil ? "nil" : "credentials") \
+        duration=\(Date().timeIntervalSince(started))
+        """)
     
     return result.value
   }

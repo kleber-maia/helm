@@ -78,7 +78,6 @@
 		C9CDB91D270D4FD1007C2E77 /* libgit2-mac.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C9CDB91C270D4FD1007C2E77 /* libgit2-mac.a */; };
 		C9CDB920270D50A1007C2E77 /* libiconv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = C9CDB91F270D50A1007C2E77 /* libiconv.tbd */; };
 		C9CDB922270D50C1007C2E77 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = C9CDB921270D50C1007C2E77 /* libz.tbd */; };
-		C9CDB924270D54F9007C2E77 /* libssh2.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C9CDB923270D54F9007C2E77 /* libssh2.a */; };
 		C9EA18F7234F8DB000DDAA25 /* ControlValueWrappers.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9EA18F6234F8DB000DDAA25 /* ControlValueWrappers.swift */; };
 		C9F1B5F02217264A00293305 /* Nibs.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9F1B5EF2217264A00293305 /* Nibs.swift */; };
 		C9F5334D2187608300B2432C /* UIString.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9F5334C2187608300B2432C /* UIString.swift */; };
@@ -173,7 +172,6 @@
 		C9CDB91C270D4FD1007C2E77 /* libgit2-mac.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = "libgit2-mac.a"; sourceTree = SOURCE_ROOT; };
 		C9CDB91F270D50A1007C2E77 /* libiconv.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libiconv.tbd; path = usr/lib/libiconv.tbd; sourceTree = SDKROOT; };
 		C9CDB921270D50C1007C2E77 /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
-		C9CDB923270D54F9007C2E77 /* libssh2.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssh2.a; path = /opt/homebrew/lib/libssh2.a; sourceTree = "<absolute>"; };
 		C9CDB990270DDE0D007C2E77 /* git2 */ = {isa = PBXFileReference; lastKnownFileType = folder; name = git2; path = libgit2/include/git2; sourceTree = "<group>"; };
 		C9CDB99B270DDEDF007C2E77 /* src */ = {isa = PBXFileReference; lastKnownFileType = folder; name = src; path = libgit2/src; sourceTree = "<group>"; };
 		C9EA18F6234F8DB000DDAA25 /* ControlValueWrappers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlValueWrappers.swift; sourceTree = "<group>"; };
@@ -221,7 +219,6 @@
 				C9CDB920270D50A1007C2E77 /* libiconv.tbd in Frameworks */,
 				C9CDB922270D50C1007C2E77 /* libz.tbd in Frameworks */,
 				89F24B842C498878007D632E /* FakedMacro in Frameworks */,
-				C9CDB924270D54F9007C2E77 /* libssh2.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -314,7 +311,6 @@
 		C3FA46FF13D0F8E200AC4F9B /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				C9CDB923270D54F9007C2E77 /* libssh2.a */,
 				C9CDB921270D50C1007C2E77 /* libz.tbd */,
 				C9CDB91F270D50A1007C2E77 /* libiconv.tbd */,
 				DD858B2B1801325500264F7D /* CoreServices.framework */,

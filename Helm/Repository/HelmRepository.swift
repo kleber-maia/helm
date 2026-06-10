@@ -5,6 +5,24 @@ import os
 public let repoLogger = Logger(subsystem: Bundle.main.bundleIdentifier!,
                                category: "repo")
 
+extension Logger
+{
+  func publicDebug(_ message: String)
+  {
+    debug("\(message, privacy: .public)")
+  }
+
+  func publicInfo(_ message: String)
+  {
+    info("\(message, privacy: .public)")
+  }
+
+  func publicError(_ message: String)
+  {
+    error("\(message, privacy: .public)")
+  }
+}
+
 /// Stores a repo reference for C callbacks
 struct CallbackPayload { let repo: HelmRepository }
 
@@ -83,6 +101,7 @@ public final class HelmRepository: BasicRepository, RepoConfiguring
     self.gitRunner = CLIRunner(toolPath: gitCmd,
                                workingDir: url.path)
     self.config = config
+    repoLogger.publicInfo("repository open path=\(url.path)")
   }
   
   @objc(initWithURL:)
@@ -124,18 +143,23 @@ public final class HelmRepository: BasicRepository, RepoConfiguring
     
     mutex.withLock {
       isWriting = writing
+      repoLogger.publicDebug("""
+          repository writingState path=\(self.repoURL.path) writing=\(writing)
+          """)
     }
   }
     
   func clearCachedBranch()
   {
     mutex.withLock {
+      repoLogger.publicDebug("repository clearCachedBranch path=\(self.repoURL.path)")
       currentBranchSubject.value = nil
     }
   }
   
   func refsChanged()
   {
+    repoLogger.publicDebug("repository refsChanged requested path=\(self.repoURL.path)")
     cachedBranches = [:]
     
     // In theory the two separate locks could result in cachedBranch being wrong
@@ -144,17 +168,32 @@ public final class HelmRepository: BasicRepository, RepoConfiguring
     // Not likely.
     guard let newBranch = calculateCurrentBranch(),
           mutex.withLock({ newBranch != currentBranchSubject.value })
-    else { return }
+    else {
+      repoLogger.publicDebug("""
+          repository refsChanged noCurrentBranchChange path=\(self.repoURL.path)
+          """)
+      return
+    }
 
+    repoLogger.publicInfo("""
+        repository currentBranchChanged path=\(self.repoURL.path) \
+        branch=\(newBranch.fullPath)
+        """)
     currentBranchSubject.value = newBranch
   }
 
   func tryRefsChanged() -> Bool
   {
     guard mutex.try()
-    else { return false }
+    else {
+      repoLogger.publicError("""
+          repository tryRefsChanged lockBusy path=\(self.repoURL.path)
+          """)
+      return false
+    }
 
     defer { mutex.unlock() }
+    repoLogger.publicDebug("repository tryRefsChanged locked path=\(self.repoURL.path)")
     rebuildRefsIndex()
     refsChanged()
     return true
@@ -178,24 +217,48 @@ public final class HelmRepository: BasicRepository, RepoConfiguring
   
   func invalidateIndex()
   {
+    repoLogger.publicDebug("repository invalidateIndex path=\(self.repoURL.path)")
     controller?.invalidateIndex()
   }
   
   func writing<T>(_ block: () throws -> T) throws -> T
   {
+    let started = Date()
+
+    repoLogger.publicDebug("repository writing request path=\(self.repoURL.path)")
     objc_sync_enter(self)
     defer {
       objc_sync_exit(self)
     }
     
     guard !isWriting
-    else { throw RepoError.alreadyWriting }
+    else {
+      repoLogger.publicError("""
+          repository writing rejected path=\(self.repoURL.path) \
+          reason=alreadyWriting
+          """)
+      throw RepoError.alreadyWriting
+    }
 
     isWriting = true
+    repoLogger.publicInfo("repository writing begin path=\(self.repoURL.path)")
     defer {
       isWriting = false
+      repoLogger.publicInfo("""
+          repository writing end path=\(self.repoURL.path) \
+          duration=\(Date().timeIntervalSince(started))
+          """)
     }
-    return try block()
+    do {
+      return try block()
+    }
+    catch {
+      repoLogger.publicError("""
+          repository writing failed path=\(self.repoURL.path) \
+          error=\(String(describing: error))
+          """)
+      throw error
+    }
   }
   
   func executeGit(args: [String],
@@ -217,11 +280,22 @@ public final class HelmRepository: BasicRepository, RepoConfiguring
                     userInfo: nil)
     }
     
+    let command = "git \(args.joined(separator: " "))"
+    let started = Date()
+
+    repoLogger.publicInfo("""
+        repository git begin path=\(self.repoURL.path) writes=\(writes) \
+        inputBytes=\(stdInData?.count ?? 0) command=\(command)
+        """)
     objc_sync_enter(self)
     defer {
       objc_sync_exit(self)
     }
     if writes && isWriting {
+      repoLogger.publicError("""
+          repository git rejected path=\(self.repoURL.path) writes=\(writes) \
+          reason=alreadyWriting command=\(command)
+          """)
       throw RepoError.alreadyWriting
     }
     
@@ -232,7 +306,24 @@ public final class HelmRepository: BasicRepository, RepoConfiguring
       updateIsWriting(wasWriting)
     }
     
-    return try gitRunner.run(inputData: stdInData, args: args)
+    do {
+      let output = try gitRunner.run(inputData: stdInData, args: args)
+
+      repoLogger.publicInfo("""
+          repository git end path=\(self.repoURL.path) writes=\(writes) \
+          outputBytes=\(output.count) duration=\(Date().timeIntervalSince(started)) \
+          command=\(command)
+          """)
+      return output
+    }
+    catch {
+      repoLogger.publicError("""
+          repository git failed path=\(self.repoURL.path) writes=\(writes) \
+          duration=\(Date().timeIntervalSince(started)) command=\(command) \
+          error=\(String(describing: error))
+          """)
+      throw error
+    }
   }
 }
 
@@ -240,13 +331,36 @@ extension HelmRepository: WritingManagement
 {
   public func performWriting(_ block: (() throws -> Void)) throws
   {
+    let started = Date()
+
+    repoLogger.publicDebug("repository performWriting request path=\(self.repoURL.path)")
     try mutex.withLock {
       if isWriting {
+        repoLogger.publicError("""
+            repository performWriting rejected path=\(self.repoURL.path) \
+            reason=alreadyWriting
+            """)
         throw RepoError.alreadyWriting
       }
       isWriting = true
-      defer { isWriting = false }
-      try block()
+      repoLogger.publicInfo("repository performWriting begin path=\(self.repoURL.path)")
+      defer {
+        isWriting = false
+        repoLogger.publicInfo("""
+            repository performWriting end path=\(self.repoURL.path) \
+            duration=\(Date().timeIntervalSince(started))
+            """)
+      }
+      do {
+        try block()
+      }
+      catch {
+        repoLogger.publicError("""
+            repository performWriting failed path=\(self.repoURL.path) \
+            error=\(String(describing: error))
+            """)
+        throw error
+      }
     }
   }
 
@@ -256,8 +370,27 @@ extension HelmRepository: WritingManagement
   public func performReading<T>(
       _ block: () throws -> T) rethrows -> T
   {
-    try mutex.withLock {
-      try block()
+    let started = Date()
+
+    do {
+      let result = try mutex.withLock {
+        try block()
+      }
+      let duration = Date().timeIntervalSince(started)
+
+      if duration > 1 {
+        repoLogger.publicDebug("""
+            repository slowRead path=\(self.repoURL.path) duration=\(duration)
+            """)
+      }
+      return result
+    }
+    catch {
+      repoLogger.publicError("""
+          repository read failed path=\(self.repoURL.path) \
+          error=\(String(describing: error))
+          """)
+      throw error
     }
   }
 }

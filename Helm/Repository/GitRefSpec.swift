@@ -1,6 +1,25 @@
 import Foundation
 import FakedMacro
 
+public enum RemoteConnectionDirection: Sendable
+{
+  case push
+  case fetch
+}
+
+public extension RemoteConnectionDirection
+{
+  init(gitDirection: git_direction)
+  {
+    switch gitDirection {
+      case GIT_DIRECTION_FETCH:
+        self = .fetch
+      default:
+        self = .push
+    }
+  }
+}
+
 @Faked
 public protocol RefSpec
 {

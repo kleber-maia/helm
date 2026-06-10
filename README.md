@@ -48,10 +48,9 @@ performance on large repositories, and polish in common Git workflows.
 - macOS 26.0 or later
 - Xcode 16 or later
 - Swift 5
-- Homebrew dependencies for libgit2 SSH support:
+- Homebrew dependencies for libgit2:
   - `libgit2`
   - `openssl@3` or `openssl`
-  - `libssh2`
 - Node.js only if you are changing the bundled CodeMirror web assets
 
 ## Getting Started
@@ -72,7 +71,7 @@ git submodule update --init --recursive
 Install native dependencies:
 
 ```bash
-brew install libgit2 openssl@3 libssh2
+brew install libgit2 openssl@3
 ```
 
 Build the app:

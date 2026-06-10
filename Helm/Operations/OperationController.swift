@@ -27,6 +27,9 @@ class OperationController
 
   private let canceledMutex = NSRecursiveLock()
   private let canceledBox = Box<Bool>(false)
+
+  nonisolated var operationName: String
+  { String(describing: type(of: self)) }
   
   init(windowController: HelmWindowController)
   {
@@ -41,6 +44,9 @@ class OperationController
   
   func ended(result: OperationResult = .success)
   {
+    repoLogger.publicInfo("""
+        operation ended name=\(self.operationName) result=\(String(describing: result))
+        """)
     if result == .success {
       for action in successActions {
         action()
@@ -52,8 +58,12 @@ class OperationController
 
   nonisolated func refsChangedAndEnded()
   {
+    repoLogger.publicDebug("operation refsChangedAndEnded requested")
     Task {
       @MainActor in
+      repoLogger.publicInfo("""
+          operation refsChangedAndEnded running name=\(self.operationName)
+          """)
       self.windowController?.repoController.refsChanged()
       self.ended()
     }
@@ -76,14 +86,36 @@ class OperationController
   /// updating status.
   func tryRepoOperation(block: @escaping (@Sendable () throws -> Void))
   {
+    let operationName = self.operationName
+
+    repoLogger.publicInfo("operation repoBlock enqueue name=\(operationName)")
     windowController?.repoController.queue.executeOffMainThread {
       [weak self] in
+      let started = Date()
+
+      repoLogger.publicInfo("operation repoBlock begin name=\(operationName)")
       do {
         try block()
+        repoLogger.publicInfo("""
+            operation repoBlock success name=\(operationName) \
+            duration=\(Date().timeIntervalSince(started))
+            """)
       }
       catch let error {
         guard let self = self
-        else { return }
+        else {
+          repoLogger.publicError("""
+              operation repoBlock failedAfterDeinit name=\(operationName) \
+              error=\(String(describing: error))
+              """)
+          return
+        }
+
+        repoLogger.publicError("""
+            operation repoBlock failed name=\(operationName) \
+            duration=\(Date().timeIntervalSince(started)) \
+            error=\(String(describing: error))
+            """)
         
         Task { @MainActor in
           defer {
@@ -113,6 +145,9 @@ class OperationController
   
   func showFailureError(_ message: String)
   {
+    repoLogger.publicError("""
+        operation showFailureError name=\(self.operationName) message=\(message)
+        """)
     Task { @MainActor in
       NSAlert.showMessage(window: self.windowController?.window,
                           message: UIString(rawValue: message))
@@ -121,6 +156,9 @@ class OperationController
 
   func fail(with error: RepoError)
   {
+    repoLogger.publicError("""
+        operation fail name=\(self.operationName) error=\(String(describing: error))
+        """)
     showFailureError(repoErrorMessage(for: error).rawValue)
     ended(result: .failure)
   }

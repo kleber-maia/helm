@@ -39,6 +39,7 @@ final class RepositoryWatcher
       mutex.withLock {
         lastIndexChangeGuarded = newValue
         controller?.invalidateIndex()
+        repoLogger.publicInfo("watcher send type=index modified=\(newValue)")
         publishers.send(.index)
       }
     }
@@ -55,6 +56,10 @@ final class RepositoryWatcher
     
     self.controller = controller
     self.refsCache = Self.index(from: repository)
+    repoLogger.publicInfo("""
+        watcher init type=repository path=\(repository.gitDirectoryPath) \
+        refs=\(self.refsCache.count)
+        """)
 
     let gitPath = repository.gitDirectoryPath
     let objectsPath = gitPath.appending(pathComponent: "objects")
@@ -79,6 +84,7 @@ final class RepositoryWatcher
   
   func stop()
   {
+    repoLogger.publicInfo("watcher stop type=repository")
     stream.stop()
     mutex.withLock {
       packedRefsWatcher = nil
@@ -91,11 +97,16 @@ final class RepositoryWatcher
     let watcher = FileMonitor(path: path +/ "packed-refs")
     
     if let watcher {
+      repoLogger.publicInfo("watcher start type=packedRefs path=\(path +/ "packed-refs")")
       mutex.withLock { packedRefsWatcher = watcher }
       packedRefsSink = watcher.eventPublisher.sink {
         [weak self] (_, _) in
+        repoLogger.publicInfo("watcher event type=packedRefs")
         self?.checkRefs()
       }
+    }
+    else {
+      repoLogger.publicDebug("watcher missing type=packedRefs path=\(path +/ "packed-refs")")
     }
   }
   
@@ -103,11 +114,16 @@ final class RepositoryWatcher
   {
     let path = repository!.gitDirectoryPath +/ "logs/refs/stash"
     guard let watcher = FileMonitor(path: path)
-    else { return }
+    else {
+      repoLogger.publicDebug("watcher missing type=stash path=\(path)")
+      return
+    }
     
+    repoLogger.publicInfo("watcher start type=stash path=\(path)")
     stashWatcher = watcher
     stashSink = watcher.eventPublisher.sink {
       [weak self] (_, _) in
+      repoLogger.publicInfo("watcher send type=stash")
       self?.publishers.send(.stash)
     }
   }
@@ -135,6 +151,7 @@ final class RepositoryWatcher
           let newMod = indexAttributes[FileAttributeKey.modificationDate]
                        as? Date
     else {
+      repoLogger.publicError("watcher index missing path=\(indexPath)")
       lastIndexChange = Date.distantPast
       return
     }
@@ -173,6 +190,10 @@ final class RepositoryWatcher
     ]
     
     if paths(changedPaths, includeSubpaths: refPaths) {
+      repoLogger.publicInfo("""
+          watcher refsPathChanged count=\(changedPaths.count) \
+          paths=\(changedPaths.joined(separator: ","))
+          """)
       checkRefs()
     }
   }
@@ -180,6 +201,7 @@ final class RepositoryWatcher
   func checkHead(changedPaths: [String], repository: HelmRepository)
   {
     if paths(changedPaths, includeSubpaths: ["HEAD"]) {
+      repoLogger.publicInfo("watcher send type=head")
       repository.clearCachedBranch()
       publishers.send(.head)
     }
@@ -221,6 +243,10 @@ final class RepositoryWatcher
     }
     
     if !refChanges.isEmpty {
+      repoLogger.publicInfo("""
+          watcher send type=refs added=\(addedRefs.count) \
+          deleted=\(deletedRefs.count) changed=\(changedRefs.count)
+          """)
       repository.rebuildRefsIndex()
       repository.refsChanged()
       publishers.send(.refs)
@@ -236,12 +262,14 @@ final class RepositoryWatcher
 
     mutex.withLock {
       refsCache = Self.index(from: repository)
+      repoLogger.publicDebug("watcher resetRefsCache refs=\(self.refsCache.count)")
     }
   }
   
   func checkLogs(changedPaths: [String])
   {
     if paths(changedPaths, includeSubpaths: ["logs/refs"]) {
+      repoLogger.publicInfo("watcher send type=refLog")
       publishers.send(.refLog)
     }
   }
@@ -250,6 +278,11 @@ final class RepositoryWatcher
   {
     // FSEvents includes trailing slashes, but some other APIs don't.
     let standardizedPaths = paths.map { ($0 as NSString).standardizingPath }
+
+    repoLogger.publicDebug("""
+        watcher event type=repository count=\(standardizedPaths.count) \
+        paths=\(standardizedPaths.joined(separator: ","))
+        """)
   
     checkIndex(repository: repository)
     checkHead(changedPaths: standardizedPaths, repository: repository)

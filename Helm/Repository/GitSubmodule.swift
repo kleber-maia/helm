@@ -167,15 +167,43 @@ public final class GitSubmodule: Submodule
   
   public func update(initialize: Bool, callbacks: RemoteCallbacks) throws
   {
-    var options = git_submodule_update_options.defaultOptions()
-    
-    try git_remote_callbacks.withCallbacks(callbacks) {
-      (gitCallbacks) in
-      options.fetch_opts.callbacks = gitCallbacks
-      
-      let result = git_submodule_update(submodule, initialize ? 1 : 0, &options)
-      
-      try RepoError.throwIfGitError(result)
+    guard let gitPath = HelmRepository.gitPath(),
+          let workDir = git_repository_workdir(owner)
+    else { throw RepoError.unexpected }
+
+    let started = Date()
+    let workDirPath = String(cString: workDir)
+    var args = ["submodule", "update"]
+
+    if initialize {
+      args.append("--init")
+    }
+    if recurse == .yes {
+      args.append("--recursive")
+    }
+    args += ["--", path]
+
+    repoLogger.publicInfo("""
+        submodule update begin path=\(path) initialize=\(initialize) \
+        recurse=\(recurse.rawValue)
+        """)
+
+    do {
+      let runner = CLIRunner(toolPath: gitPath, workingDir: workDirPath)
+
+      _ = try runner.run(args: args)
+      repoLogger.publicInfo("""
+          submodule update end path=\(path) \
+          duration=\(Date().timeIntervalSince(started))
+          """)
+    }
+    catch {
+      repoLogger.publicError("""
+          submodule update failed path=\(path) \
+          duration=\(Date().timeIntervalSince(started)) \
+          error=\(String(describing: error))
+          """)
+      throw error
     }
   }
   

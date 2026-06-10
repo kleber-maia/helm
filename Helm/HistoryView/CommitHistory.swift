@@ -171,19 +171,33 @@ final class CommitHistory<C: Commit>: @unchecked Sendable
                               starting: processingConnections)
 
     Signpost.intervalStart(.generateLines(currentBatchStart))
-    DispatchQueue.concurrentPerform(iterations: batchSize) {
-      (index) in
+    repoLogger.publicDebug("""
+        history batch begin generation=\(generation) \
+        start=\(currentBatchStart) size=\(batchSize)
+        """)
+    for index in 0..<batchSize {
       guard !checkAbort(),
             isCurrentGeneration(generation)
-      else { return }
+      else {
+        Signpost.intervalEnd(.generateLines(currentBatchStart))
+        return false
+      }
 
       generateLines(entry: entriesSnapshot[index],
                     connections: connections[index])
     }
+    repoLogger.publicDebug("""
+        history batch linesGenerated generation=\(generation) \
+        start=\(currentBatchStart) size=\(batchSize)
+        """)
 
     guard !checkAbort(),
           isCurrentGeneration(generation)
     else {
+      repoLogger.publicInfo("""
+          history batch aborted generation=\(generation) \
+          start=\(currentBatchStart)
+          """)
       Signpost.intervalEnd(.generateLines(currentBatchStart))
       return false
     }
@@ -199,6 +213,10 @@ final class CommitHistory<C: Commit>: @unchecked Sendable
 
     guard didFinishBatch
     else {
+      repoLogger.publicInfo("""
+          history batch ignored generation=\(generation) \
+          start=\(currentBatchStart) reason=stale
+          """)
       Signpost.intervalEnd(.generateLines(currentBatchStart))
       return false
     }
@@ -207,6 +225,10 @@ final class CommitHistory<C: Commit>: @unchecked Sendable
                    start: currentBatchStart,
                    end: currentBatchStart + batchSize)
     Signpost.intervalEnd(.generateLines(currentBatchStart))
+    repoLogger.publicDebug("""
+        history batch end generation=\(generation) \
+        start=\(currentBatchStart) end=\(currentBatchStart + batchSize)
+        """)
     return true
   }
 
@@ -259,6 +281,9 @@ final class CommitHistory<C: Commit>: @unchecked Sendable
     }
 
     if startProcessing {
+      repoLogger.publicDebug("""
+          history processing start generation=\(generation) target=\(row)
+          """)
       DispatchQueue.global(qos: .utility).async {
         if let queue = queue {
           queue.executeTask {
@@ -275,6 +300,11 @@ final class CommitHistory<C: Commit>: @unchecked Sendable
   private func processBatch(generation: Int)
   {
     Signpost.interval(.processBatches) {
+      repoLogger.publicDebug("history processBatch begin generation=\(generation)")
+      defer {
+        repoLogger.publicDebug("history processBatch end generation=\(generation)")
+      }
+
       while true {
         // Read the loop condition and clear `batchTargetRow` under the
         // same lock: `processBatches` uses `batchTargetRow == 0` to decide

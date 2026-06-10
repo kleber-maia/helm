@@ -13,6 +13,7 @@ public final class TaskQueue: @unchecked Sendable
 
   public let queue: DispatchQueue
   private var queueCount: UInt = 0
+  private var nextTaskID: UInt64 = 0
   fileprivate(set) var isShutDown = false
   private let lock = NSRecursiveLock()
   private var asyncTail: Task<Void, Never>?
@@ -28,41 +29,93 @@ public final class TaskQueue: @unchecked Sendable
     self.queue = DispatchQueue(label: id, attributes: [])
   }
 
-  private func increment()
+  private func makeTaskID() -> UInt64
   {
-    lock.withLock {
-      queueCount += 1
+    return lock.withLock {
+      nextTaskID += 1
+      return nextTaskID
     }
+  }
+
+  private func increment(taskID: UInt64, kind: String)
+  {
+    let count = lock.withLock {
+      queueCount += 1
+      return queueCount
+    }
+
+    repoLogger.publicDebug("""
+        queue start id=\(taskID) kind=\(kind) label=\(self.queue.label) \
+        pending=\(count)
+        """)
     busyValuePublisher.value = true
   }
 
-  private func decrement()
+  private func decrement(taskID: UInt64, kind: String, started: Date)
   {
+    let count = lock.withLock {
+      if queueCount > 0 {
+        queueCount -= 1
+      }
+      return queueCount
+    }
+
+    repoLogger.publicDebug("""
+        queue finish id=\(taskID) kind=\(kind) label=\(self.queue.label) \
+        pending=\(count) duration=\(Date().timeIntervalSince(started))
+        """)
     lock.withLock {
-      queueCount -= 1
       busyValuePublisher.value = queueCount > 0
     }
   }
 
+  private func executeTask(
+    id taskID: UInt64,
+    kind: String,
+    _ block: () -> Void
+  )
+  {
+    let started = Date()
+
+    increment(taskID: taskID, kind: kind)
+    block()
+    decrement(taskID: taskID, kind: kind, started: started)
+  }
+
   public func executeTask(_ block: () -> Void)
   {
-    increment()
-    block()
-    decrement()
+    let taskID = makeTaskID()
+
+    repoLogger.publicDebug("""
+        queue enqueue id=\(taskID) kind=direct label=\(self.queue.label)
+        """)
+    executeTask(id: taskID, kind: "direct", block)
   }
 
   public func executeOffMainThread(_ block: @escaping @Sendable () -> Void)
   {
+    let taskID = makeTaskID()
+
+    repoLogger.publicDebug("""
+        queue enqueue id=\(taskID) kind=sync label=\(self.queue.label) \
+        fromMain=\(Thread.isMainThread)
+        """)
     if Thread.isMainThread {
       if !isShutDown {
         queue.async {
           [weak self] in
-          self?.executeTask(block)
+          self?.executeTask(id: taskID, kind: "sync", block)
         }
+      }
+      else {
+        repoLogger.publicError("""
+            queue drop id=\(taskID) kind=sync label=\(self.queue.label) \
+            reason=shutDown
+            """)
       }
     }
     else {
-      executeTask(block)
+      executeTask(id: taskID, kind: "sync-inline", block)
     }
   }
 
@@ -71,11 +124,22 @@ public final class TaskQueue: @unchecked Sendable
   /// `@MainActor` code without deadlocking the serial dispatch queue.
   public func executeAsync(_ block: @Sendable @escaping () async -> Void)
   {
+    let taskID = makeTaskID()
+
     lock.withLock {
       guard !isShutDown
-      else { return }
+      else {
+        repoLogger.publicError("""
+            queue drop id=\(taskID) kind=async label=\(self.queue.label) \
+            reason=shutDown
+            """)
+        return
+      }
 
       let previousTask = asyncTail
+      repoLogger.publicDebug("""
+          queue enqueue id=\(taskID) kind=async label=\(self.queue.label)
+          """)
 
       asyncTail = Task.detached(priority: .userInitiated) {
         [weak self] in
@@ -83,10 +147,19 @@ public final class TaskQueue: @unchecked Sendable
         guard let self
         else { return }
         guard !self.lock.withLock({ self.isShutDown })
-        else { return }
+        else {
+          repoLogger.publicError("""
+              queue drop id=\(taskID) kind=async label=\(self.queue.label) \
+              reason=shutDownAfterWait
+              """)
+          return
+        }
 
-        self.increment()
-        defer { self.decrement() }
+        let started = Date()
+        self.increment(taskID: taskID, kind: "async")
+        defer {
+          self.decrement(taskID: taskID, kind: "async", started: started)
+        }
         await block()
       }
     }
@@ -95,14 +168,28 @@ public final class TaskQueue: @unchecked Sendable
   /// Runs an asynchronous block immediately, tracking busy state.
   public func executeDetached(_ block: @Sendable @escaping () async -> Void)
   {
+    let taskID = makeTaskID()
+
     guard !lock.withLock({ isShutDown })
-    else { return }
+    else {
+      repoLogger.publicError("""
+          queue drop id=\(taskID) kind=detached label=\(self.queue.label) \
+          reason=shutDown
+          """)
+      return
+    }
+    repoLogger.publicDebug("""
+        queue enqueue id=\(taskID) kind=detached label=\(self.queue.label)
+        """)
     Task.detached(priority: .userInitiated) {
       [weak self] in
       guard let self
       else { return }
-      self.increment()
-      defer { self.decrement() }
+      let started = Date()
+      self.increment(taskID: taskID, kind: "detached")
+      defer {
+        self.decrement(taskID: taskID, kind: "detached", started: started)
+      }
       await block()
     }
   }
@@ -111,15 +198,49 @@ public final class TaskQueue: @unchecked Sendable
   /// thread, or inline otherwise.
   public func syncOffMainThread<T>(_ block: () throws -> T) throws -> T
   {
+    let taskID = makeTaskID()
+
+    repoLogger.publicDebug("""
+        queue sync request id=\(taskID) label=\(self.queue.label) \
+        fromMain=\(Thread.isMainThread)
+        """)
     if Thread.isMainThread {
       if isShutDown {
+        repoLogger.publicError("""
+            queue sync drop id=\(taskID) label=\(self.queue.label) \
+            reason=shutDown
+            """)
         throw Error.queueShutDown
       }
       else {
-        return try queue.sync(execute: block)
+        return try queue.sync {
+          let started = Date()
+
+          repoLogger.publicDebug("""
+              queue sync start id=\(taskID) label=\(self.queue.label)
+              """)
+          defer {
+            repoLogger.publicDebug("""
+                queue sync finish id=\(taskID) label=\(self.queue.label) \
+                duration=\(Date().timeIntervalSince(started))
+                """)
+          }
+          return try block()
+        }
       }
     }
     else {
+      let started = Date()
+
+      repoLogger.publicDebug("""
+          queue sync inline start id=\(taskID) label=\(self.queue.label)
+          """)
+      defer {
+        repoLogger.publicDebug("""
+            queue sync inline finish id=\(taskID) label=\(self.queue.label) \
+            duration=\(Date().timeIntervalSince(started))
+            """)
+      }
       return try block()
     }
   }
@@ -131,6 +252,7 @@ public final class TaskQueue: @unchecked Sendable
   
   public func shutDown()
   {
+    repoLogger.publicInfo("queue shutDown label=\(self.queue.label)")
     isShutDown = true
   }
 }

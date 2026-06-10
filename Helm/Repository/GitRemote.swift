@@ -1,35 +1,6 @@
 import Foundation
 import FakedMacro
 
-public enum RemoteConnectionDirection: Sendable
-{
-  case push
-  case fetch
-}
-
-public extension RemoteConnectionDirection
-{
-  init(gitDirection: git_direction)
-  {
-    switch gitDirection {
-      case GIT_DIRECTION_FETCH:
-        self = .fetch
-      default:
-        self = .push
-    }
-  }
-  
-  var gitDirection: git_direction
-  {
-    switch self {
-      case .push:
-        return GIT_DIRECTION_PUSH
-      case .fetch:
-        return GIT_DIRECTION_FETCH
-    }
-  }
-}
-
 @Faked
 public protocol Remote: AnyObject
 {
@@ -45,12 +16,6 @@ public protocol Remote: AnyObject
   func rename(_ name: String) throws
   func updateURLString(_ URLString: String?) throws
   func updatePushURLString(_ URLString: String?) throws
-  
-  /// Calls the callback between opening and closing a connection to the remote.
-  @FakeDefault(exp: "try action(NullConnectedRemote())")
-  func withConnection<T>(direction: RemoteConnectionDirection,
-                         callbacks: RemoteCallbacks,
-                         action: (any ConnectedRemote) throws -> T) throws -> T
 }
 
 public extension Remote
@@ -67,14 +32,6 @@ public extension Remote
   {
     try updatePushURLString(url.absoluteString)
   }
-}
-
-@Faked
-public protocol ConnectedRemote: AnyObject
-{
-  var defaultBranch: String? { get }
-  
-  func referenceAdvertisements() throws -> [RemoteHead]
 }
 
 public final class GitRemote: Remote
@@ -193,27 +150,6 @@ public final class GitRemote: Remote
     }
   }
   
-  public func withConnection<T>(direction: RemoteConnectionDirection,
-                                callbacks: RemoteCallbacks,
-                                action: (any ConnectedRemote) throws -> T)
-    throws -> T
-  {
-    var result: Int32
-    
-    result = git_remote_callbacks.withCallbacks(callbacks) {
-      (gitCallbacks) in
-      withUnsafePointer(to: gitCallbacks) {
-        (callbacksPtr) in
-        git_remote_connect(remote, direction.gitDirection, callbacksPtr, nil, nil)
-      }
-    }
-    
-    try RepoError.throwIfGitError(result)
-    defer {
-      git_remote_disconnect(remote)
-    }
-    return try action(GitConnectedRemote(remote))
-  }
 }
 
 extension GitRemote
@@ -263,59 +199,6 @@ extension GitRemote
         index += 1
       }
       return .init(refSpec: git_remote_get_refspec(remote.remote, index))
-    }
-  }
-}
-
-public struct RemoteHead
-{
-  public let local: Bool
-  public let oid: GitOID
-  public let localOID: GitOID
-  public let name: String
-  public let symrefTarget: String
-  
-  init(_ head: git_remote_head)
-  {
-    self.local = head.local == 0 ? false : true
-    self.oid = .init(oid: head.oid)
-    self.localOID = .init(oid: head.loid)
-    self.name = String(cString: head.name)
-    self.symrefTarget = head.symref_target.map { String(cString: $0) } ?? ""
-  }
-}
-
-class GitConnectedRemote: ConnectedRemote
-{
-  let remote: OpaquePointer
-
-  var defaultBranch: String?
-  {
-    var buf = git_buf()
-    let result = git_remote_default_branch(&buf, remote)
-    guard result == GIT_OK.rawValue
-    else { return nil }
-    defer {
-      git_buf_free(&buf)
-    }
-    
-    return String(gitBuffer: buf)
-  }
-  
-  init(_ remote: OpaquePointer)
-  {
-    self.remote = remote
-  }
-  
-  func referenceAdvertisements() throws -> [RemoteHead]
-  {
-    var size: size_t = 0
-    let heads = try UnsafeMutablePointer.from {
-      git_remote_ls(&$0, &size, remote)
-    }
-    
-    return (0..<size).compactMap {
-      heads.advanced(by: $0).pointee.flatMap({ RemoteHead($0.pointee) })
     }
   }
 }

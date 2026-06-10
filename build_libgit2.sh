@@ -18,7 +18,8 @@ else
 fi
 PATH="${HOMEBREW_ROOT}/bin:$PATH"
 
-if [ "libgit2-mac.a" -nt "libgit2" ]
+if [ "libgit2-mac.a" -nt "libgit2" ] && \
+   [ "libgit2-mac.a" -nt "$0" ]
 then
     echo "No update needed."
     exit 0
@@ -37,8 +38,7 @@ cd build
 export PKG_CONFIG_PATH="${HOMEBREW_ROOT}/opt/${OPENSSL_DIR}/lib/pkgconfig"
 
 cmake -DBUILD_SHARED_LIBS:BOOL=OFF \
-    -DUSE_SSH=ON \
-    -DCMAKE_PREFIX_PATH="${HOMEBREW_ROOT}/opt/libssh2" \
+    -DUSE_SSH=exec \
     -DBUILD_CLAR:BOOL=OFF \
     -DTHREADSAFE:BOOL=ON \
     ..
