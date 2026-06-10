@@ -186,6 +186,9 @@ final class SidebarViewModel<Brancher, Manager, Referencer, Stasher, Tagger, Sub
 
     refresh()
     sinks.append(contentsOf: [
+      publisher.headPublisher.sinkOnMainQueue { [weak self] in
+        self?.refresh()
+      },
       publisher.refsPublisher.sinkOnMainQueue { [weak self] in
         self?.refresh()
       },

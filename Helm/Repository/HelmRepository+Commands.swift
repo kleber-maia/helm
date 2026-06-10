@@ -79,7 +79,6 @@ extension HelmRepository: Workspace
     }
     
     try checkout(object: target)
-    clearCachedBranch()
   }
   
   public func checkOut(sha: SHA) throws

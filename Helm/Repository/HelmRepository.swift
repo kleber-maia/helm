@@ -156,30 +156,33 @@ public final class HelmRepository: BasicRepository, RepoConfiguring
       currentBranchSubject.value = nil
     }
   }
+
+  func updateCurrentBranch(reason: String)
+  {
+    mutex.withLock {
+      let newBranch = calculateCurrentBranch()
+      guard newBranch != currentBranchSubject.value
+      else {
+        repoLogger.publicDebug("""
+            repository currentBranchUnchanged path=\(self.repoURL.path) \
+            reason=\(reason)
+            """)
+        return
+      }
+
+      repoLogger.publicInfo("""
+          repository currentBranchChanged path=\(self.repoURL.path) \
+          reason=\(reason) branch=\(newBranch?.fullPath ?? "[none]")
+          """)
+      currentBranchSubject.value = newBranch
+    }
+  }
   
   func refsChanged()
   {
     repoLogger.publicDebug("repository refsChanged requested path=\(self.repoURL.path)")
     cachedBranches = [:]
-    
-    // In theory the two separate locks could result in cachedBranch being wrong
-    // but that would only happen if this function was called on two different
-    // threads and one of them found that the branch had just changed again.
-    // Not likely.
-    guard let newBranch = calculateCurrentBranch(),
-          mutex.withLock({ newBranch != currentBranchSubject.value })
-    else {
-      repoLogger.publicDebug("""
-          repository refsChanged noCurrentBranchChange path=\(self.repoURL.path)
-          """)
-      return
-    }
-
-    repoLogger.publicInfo("""
-        repository currentBranchChanged path=\(self.repoURL.path) \
-        branch=\(newBranch.fullPath)
-        """)
-    currentBranchSubject.value = newBranch
+    updateCurrentBranch(reason: "refsChanged")
   }
 
   func tryRefsChanged() -> Bool

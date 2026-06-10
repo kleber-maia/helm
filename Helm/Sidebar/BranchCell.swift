@@ -33,10 +33,12 @@ struct BranchCell<Item: PathTreeData,
         Image(systemName: "folder.fill")
           .frame(width: 16, alignment: .center)
       }
-      else if isCurrent {
+      else {
         Image("scm.branch")
           .fontWeight(.bold)
           .frame(width: 16, alignment: .center)
+          .opacity(isCurrent ? 1 : 0)
+          .accessibilityHidden(!isCurrent)
           .accessibilityElement()
           .axid(.Sidebar.currentBranchCheck)
       }
@@ -86,4 +88,3 @@ struct BranchCell<Item: PathTreeData,
     self.contextMenuContent = contextMenu
   }
 }
-

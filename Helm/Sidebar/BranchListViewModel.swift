@@ -62,6 +62,10 @@ class BranchListViewModel<Brancher: Branching,
     
     updateBranchList()
     sinks.append(contentsOf: [
+      publisher.headPublisher.sinkOnMainQueue {
+        [weak self] in
+        self?.updateBranchList()
+      },
       publisher.refsPublisher.sinkOnMainQueue {
         [weak self] in
         self?.updateBranchList()

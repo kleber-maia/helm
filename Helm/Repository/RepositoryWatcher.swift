@@ -202,7 +202,7 @@ final class RepositoryWatcher
   {
     if paths(changedPaths, includeSubpaths: ["HEAD"]) {
       repoLogger.publicInfo("watcher send type=head")
-      repository.clearCachedBranch()
+      repository.updateCurrentBranch(reason: "headChanged")
       publishers.send(.head)
     }
   }
