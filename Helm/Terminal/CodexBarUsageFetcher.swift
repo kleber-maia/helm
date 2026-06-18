@@ -286,17 +286,35 @@ private extension CodexBarUsageFetcher
     let extraRateWindows: [ExtraRateWindow]?
 
     var sessionWindow: RateWindow?
-    {
-      primary ?? extraRateWindows?.first {
-        !$0.isWeekly
-      }?.window
-    }
+    { classifiedWindows.session }
 
     var weeklyWindow: RateWindow?
+    { classifiedWindows.weekly }
+
+    /// Providers disagree on ordering: Claude/Codex put the short session
+    /// window in `primary` and the weekly one in `secondary`, but others
+    /// (e.g. Kimi) invert that. Classify by window length — the longer
+    /// window is the weekly one — so the labels are correct regardless of
+    /// position.
+    private var classifiedWindows:
+        (session: RateWindow?, weekly: RateWindow?)
     {
-      secondary ?? extraRateWindows?.first {
-        $0.isWeekly
-      }?.window
+      let ranked = [primary, secondary]
+          .compactMap { $0 }
+          .sorted { $0.weeklyRankMinutes < $1.weeklyRankMinutes }
+
+      switch ranked.count {
+        case 0:
+          return (extraRateWindows?.first { !$0.isWeekly }?.window,
+                  extraRateWindows?.first { $0.isWeekly }?.window)
+        case 1:
+          let only = ranked[0]
+          return only.weeklyRankMinutes >= RateWindow.weekThresholdMinutes
+              ? (nil, only)
+              : (only, nil)
+        default:
+          return (ranked.first, ranked.last)
+      }
     }
   }
 
@@ -333,6 +351,24 @@ private extension CodexBarUsageFetcher
                           remainingQuotaEnoughUntilReset:
                             remainingQuotaEnoughUntilReset)
     }
+
+    /// A comparable window length in minutes, used to tell the short
+    /// session/rate window from the long weekly one. Falls back to the time
+    /// until reset when the window length isn't provided (e.g. Kimi's weekly
+    /// window omits `windowMinutes`).
+    var weeklyRankMinutes: Double
+    {
+      if let windowMinutes = windowMinutes {
+        return Double(windowMinutes)
+      }
+      if let resetsAt = resetsAt,
+         let date = Self.dateFormatter.date(from: resetsAt) {
+        return max(0, date.timeIntervalSinceNow / 60)
+      }
+      return 0
+    }
+
+    static let weekThresholdMinutes: Double = 24 * 60
 
     private enum CodingKeys: String, CodingKey
     {
