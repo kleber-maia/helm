@@ -733,10 +733,15 @@ extension TitleBarController
       return
     }
 
+    // A change of displayed agent (the user switched) must fetch right away.
+    // The interval throttle only applies to periodic auto-refreshes of the
+    // agent that is already showing.
+    let agentChanged = agent != codexBarUsageAgent
     let lastRefresh = lastCodexBarUsageRefreshByAgent[agent] ?? .distantPast
 
-    guard Date().timeIntervalSince(lastRefresh) >=
-        Self.codexBarUsageRefreshInterval
+    guard agentChanged ||
+          Date().timeIntervalSince(lastRefresh) >=
+            Self.codexBarUsageRefreshInterval
     else { return }
 
     if codexBarUsageAgent != nil,
