@@ -75,22 +75,26 @@ extension FileTreeDataSource: FileListDataSource
     guard let item = item,
           let outlineView = outlineView
     else { return }
-    
+
+    // Fast path: check if the same file is still at the old row.
     if let oldRowItem = fileChange(at: oldRow),
        oldRowItem.gitPath == item.gitPath {
       outlineView.selectRowIndexes(IndexSet(integer: oldRow),
                                    byExtendingSelection: false)
       return
     }
-    
-    if let newChange = fileChange(at: outlineView.selectedRow),
-       item.gitPath != newChange.gitPath {
-      // find the item, expanding as necessary, select it
+
+    // The file moved within the tree. Scan all rows for it.
+    for row in 0..<outlineView.numberOfRows {
+      if let node = outlineView.item(atRow: row) as? FileChangeNode,
+         node.value.gitPath == item.gitPath {
+        outlineView.selectRowIndexes(IndexSet(integer: row),
+                                     byExtendingSelection: false)
+        return
+      }
     }
-    if outlineView.selectedRow == -1 {
-      outlineView.selectRowIndexes(IndexSet(integer: 0),
-                                   byExtendingSelection: false)
-    }
+
+    // The file is no longer present: leave the selection cleared.
   }
   
   func fileChange(at row: Int) -> FileChange?

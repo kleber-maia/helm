@@ -668,7 +668,12 @@ final class FileViewController: NSViewController, RepositoryWindowViewController
   
   func reload()
   {
-    activeFileList.reloadData()
+    // Route through the data source's reload() rather than calling
+    // reloadData() on the outline view directly. The data source rebuilds
+    // the tree, re-expands it, and restores the selected file by path
+    // (see FileTreeDataSource.reselect). A bare reloadData() would drop
+    // the selection on every refresh.
+    (activeFileList.dataSource as? FileListDataSource)?.reload()
   }
   
   func refreshPreview()

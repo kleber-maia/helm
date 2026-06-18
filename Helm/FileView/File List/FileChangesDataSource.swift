@@ -91,20 +91,24 @@ final class FileChangesDataSource: FileListDataSourceBase
   {
     guard let oldChange = change
     else { return }
-    var newRow = 0
-    
+
+    // Fast path: the same file is still at the old row.
     if let oldRowChange = fileChange(at: oldRow),
        oldRowChange.gitPath == oldChange.gitPath {
-      newRow = oldRow
+      outlineView.selectRowIndexes(IndexSet(integer: oldRow),
+                                   byExtendingSelection: false)
+      return
     }
-    else {
-      if let matchRow = changes.firstIndex(
-            where: { $0.gitPath == oldChange.gitPath }) {
-        newRow = matchRow
-      }
+
+    // The file moved within the list. Find it by path.
+    if let matchRow = changes.firstIndex(
+          where: { $0.gitPath == oldChange.gitPath }) {
+      outlineView.selectRowIndexes(IndexSet(integer: matchRow),
+                                   byExtendingSelection: false)
+      return
     }
-    outlineView.selectRowIndexes(NSIndexSet(index: newRow) as IndexSet,
-                                 byExtendingSelection: false)
+
+    // The file is no longer present: leave the selection cleared.
   }
 }
 
