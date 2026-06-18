@@ -64,8 +64,7 @@ final class FileViewController: NSViewController, RepositoryWindowViewController
   var fileWatcher: FileEventStream?
   var indexTimer: Timer?
   var sinks: [AnyCancellable] = []
-  private var reloadPreviewWhenQueueIdle = false
-  
+
   var contentControllers: [FileContentLoading]
   { [diffController] }
   
@@ -190,6 +189,8 @@ final class FileViewController: NSViewController, RepositoryWindowViewController
 
     guard let controller = repoUIController
     else { return }
+
+    diffController.queue = controller.repoController.queue
 
     sinks.append(contentsOf: [
       controller.repoController.indexPublisher
@@ -607,19 +608,6 @@ final class FileViewController: NSViewController, RepositoryWindowViewController
       listController.fileTreeDataSource.isReviewPanel = isReviewPanel
       listController.finishLoad(controller: controller)
     }
-
-    sinks.append(controller.repoController.queue.busyPublisher
-        .receive(on: DispatchQueue.main)
-        .sink {
-          [weak self] busy in
-          guard let self = self,
-                !busy,
-                self.reloadPreviewWhenQueueIdle
-          else { return }
-
-          self.reloadPreviewWhenQueueIdle = false
-          self.loadSelectedPreview(force: true)
-        })
   }
   
   func restoreSplit() {}
@@ -751,11 +739,6 @@ final class FileViewController: NSViewController, RepositoryWindowViewController
     guard !contentController.isLoaded || force
     else { return }
 
-    if repoUIController?.repoController.queue.isBusy == true {
-      reloadPreviewWhenQueueIdle = true
-      return
-    }
-    
     let changes = selectedChanges
     guard !changes.isEmpty,
           let repo = repo,
@@ -795,10 +778,9 @@ final class FileViewController: NSViewController, RepositoryWindowViewController
                     staging: stagingType)
     }
     
-    Task {
-      @MainActor in
-      self.contentController.load(selection: selection)
-    }
+    // load() dispatches the libgit2 work to the repository queue itself
+    // and renders back on the main thread, so this no longer blocks.
+    contentController.load(selection: selection)
 
     let fullPath = repo.repoURL.path.appending(
                       pathComponent: selectedChange.gitPath)

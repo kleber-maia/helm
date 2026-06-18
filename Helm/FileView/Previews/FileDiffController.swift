@@ -14,6 +14,46 @@ enum EditorMode
   case text
 }
 
+/// A fully-computed diff/text result, ready to render on the main thread.
+/// Produced off the main thread (on the repository queue) so libgit2 work
+/// never races with other repository operations.
+///
+/// `@unchecked Sendable` because it may carry `PatchMaker`/`Patch` (libgit2
+/// reference types) across the queue → main boundary. These are only created
+/// off-main and read on main, never used concurrently.
+struct ComputedDiff: @unchecked Sendable
+{
+  let instruction: RenderInstruction
+  /// Whether `diffMaker`/`patch` should replace the controller's stored
+  /// values (true only for diff-mode results).
+  let updatesPatch: Bool
+  let diffMaker: PatchMaker?
+  let patch: (any Patch)?
+}
+
+/// Carries the non-Sendable inputs a diff computation needs across the
+/// main → queue boundary. Safe because the queue accesses the repository
+/// serially, never concurrently with the main thread.
+struct DiffInput: @unchecked Sendable
+{
+  let fileList: any FileListModel
+  let repo: (any FileContents & CommitReferencing)?
+}
+
+/// What the main thread should render. All payloads are value types so this
+/// crosses isolation boundaries safely.
+enum RenderInstruction: Sendable
+{
+  case clear
+  /// Leave the current display untouched (e.g. patch generation failed).
+  case keepCurrent
+  case noChangesNotice
+  case notice(UIString)
+  case diff(json: String, ext: String, staging: String)
+  case text(content: String, ext: String,
+            added: [Int], deleted: [Int], modified: [Int])
+}
+
 /// Single controller managing a WKWebView that displays diffs or
 /// full file text via CodeMirror.
 final class FileDiffController: WebViewController,
@@ -30,16 +70,19 @@ final class FileDiffController: WebViewController,
 
   public var whitespace = UserDefaults.helm.whitespace
   {
-    didSet { configureDiffMaker() }
+    didSet { reloadCurrentSelection() }
   }
   public var contextLines = UInt(UserDefaults.helm.contextLines)
   {
-    didSet { configureDiffMaker() }
+    didSet { reloadCurrentSelection() }
   }
   var diffMaker: PatchMaker?
-  {
-    didSet { configureDiffMaker() }
-  }
+
+  /// The serial repository queue. Diff computation is dispatched here so it
+  /// is serialized with all other libgit2 work on the shared repository,
+  /// rather than running on the main thread (which forced the preview to
+  /// wait — and visibly freeze — whenever the queue was busy).
+  weak var queue: TaskQueue?
 
   /// Stored so we can re-render after mode switch.
   private var lastSelection: [FileSelection] = []
@@ -49,39 +92,59 @@ final class FileDiffController: WebViewController,
     return 12
   }
 
-  private func configureDiffMaker()
-  {
-    diffMaker?.whitespace = whitespace
-    diffMaker?.contextLines = contextLines
-    reloadDiff()
-  }
+  // MARK: - Diff computation (runs off the main thread)
 
-  // MARK: - Diff mode
-
-  func diffTargetBlob() -> (any Blob)?
+  private nonisolated static func targetBlob(
+      repo: (any FileContents & CommitReferencing)?,
+      stagingType: StagingType,
+      path: String) -> (any Blob)?
   {
-    guard let diffMaker = diffMaker,
-          let headRef = repo?.headRefName
+    guard let headRef = repo?.headRefName
     else { return nil }
 
     switch stagingType {
       case .none:
         return nil
       case .index:
-        return repo?.fileBlob(ref: headRef, path: diffMaker.path)
+        return repo?.fileBlob(ref: headRef, path: path)
       case .workspace:
-        return repo?.stagedBlob(file: diffMaker.path)
+        return repo?.stagedBlob(file: path)
     }
   }
 
-  private func fileExtensionForDiff() -> String
+  private nonisolated static func targetLines(
+      repo: (any FileContents & CommitReferencing)?,
+      stagingType: StagingType,
+      path: String) -> [String]?
   {
-    guard let path = diffMaker?.path
-    else { return "" }
-    return (path as NSString).pathExtension
+    guard let blob = targetBlob(repo: repo, stagingType: stagingType,
+                                path: path)
+    else { return nil }
+
+    var lines: [String]?
+
+    blob.withUnsafeBytes {
+      (bytes) in
+      var encoding = String.Encoding.utf8
+      let text = String(data: bytes, usedEncoding: &encoding)
+
+      lines = text?.components(separatedBy: .newlines)
+    }
+    return lines
   }
 
-  private func stagingTypeString() -> String
+  private nonisolated static func decodeText(_ data: Data?) -> String
+  {
+    if let data = data,
+       let decoded = String(data: data, encoding: .utf8) ??
+                     String(data: data, encoding: .utf16)
+    {
+      return decoded
+    }
+    return ""
+  }
+
+  private nonisolated static func stagingTypeString(_ stagingType: StagingType) -> String
   {
     switch stagingType {
       case .none: return "none"
@@ -90,8 +153,89 @@ final class FileDiffController: WebViewController,
     }
   }
 
-  private func hunksJSON(patch: any Patch,
-                         targetLines: [String]?) -> String
+  /// Builds the render instruction for a single selection. Must run off the
+  /// main thread (libgit2 access), serialized on the repository queue.
+  nonisolated static func computeDiff(
+      fileList: any FileListModel,
+      path: String,
+      repo: (any FileContents & CommitReferencing)?,
+      stagingType: StagingType,
+      mode: EditorMode,
+      whitespace: WhitespaceSetting,
+      contextLines: UInt) -> ComputedDiff
+  {
+    let diffResult = fileList.diffForFile(path)
+
+    switch mode {
+      case .diff:
+        return computeDiffMode(
+            diffResult: diffResult, repo: repo,
+            stagingType: stagingType,
+            whitespace: whitespace, contextLines: contextLines)
+      case .text:
+        let text = decodeText(fileList.dataForFile(path))
+        let ext = (path as NSString).pathExtension
+        let (added, deleted, modified) =
+            changedLineNumbers(from: diffResult)
+
+        return ComputedDiff(
+            instruction: .text(content: text, ext: ext, added: added,
+                               deleted: deleted, modified: modified),
+            updatesPatch: false, diffMaker: nil, patch: nil)
+    }
+  }
+
+  private nonisolated static func computeDiffMode(
+      diffResult: PatchMaker.PatchResult?,
+      repo: (any FileContents & CommitReferencing)?,
+      stagingType: StagingType,
+      whitespace: WhitespaceSetting,
+      contextLines: UInt) -> ComputedDiff
+  {
+    guard let diffResult = diffResult
+    else {
+      return ComputedDiff(instruction: .noChangesNotice,
+                          updatesPatch: false, diffMaker: nil, patch: nil)
+    }
+
+    switch diffResult {
+      case .noDifference:
+        return ComputedDiff(instruction: .noChangesNotice,
+                            updatesPatch: false, diffMaker: nil, patch: nil)
+      case .binary:
+        return ComputedDiff(instruction: .notice(.binaryFile),
+                            updatesPatch: false, diffMaker: nil, patch: nil)
+      case .diff(let diffMaker):
+        diffMaker.whitespace = whitespace
+        diffMaker.contextLines = contextLines
+
+        guard let patch = diffMaker.makePatch()
+        else {
+          return ComputedDiff(instruction: .keepCurrent,
+                              updatesPatch: true,
+                              diffMaker: diffMaker, patch: nil)
+        }
+        guard patch.hunkCount > 0
+        else {
+          return ComputedDiff(instruction: .noChangesNotice,
+                              updatesPatch: true,
+                              diffMaker: diffMaker, patch: patch)
+        }
+
+        let lines = targetLines(repo: repo, stagingType: stagingType,
+                                path: diffMaker.path)
+        let json = hunksJSON(patch: patch, targetLines: lines)
+        let ext = (diffMaker.path as NSString).pathExtension
+
+        return ComputedDiff(
+            instruction: .diff(json: json, ext: ext,
+                               staging: stagingTypeString(stagingType)),
+            updatesPatch: true, diffMaker: diffMaker, patch: patch)
+    }
+  }
+
+  private nonisolated static func hunksJSON(patch: any Patch,
+                                targetLines: [String]?) -> String
   {
     var hunks: [[String: Any]] = []
 
@@ -138,59 +282,50 @@ final class FileDiffController: WebViewController,
     return json
   }
 
-  func reloadDiff()
+  /// Applies a computed result on the main thread: stores the patch (for
+  /// hunk staging) and renders via the web view.
+  @MainActor
+  private func apply(_ result: ComputedDiff, stagingType: StagingType)
   {
-    guard let diffMaker = diffMaker,
-          let patch = diffMaker.makePatch()
-    else {
-      self.patch = nil
-      return
+    self.stagingType = stagingType
+    if result.updatesPatch {
+      self.diffMaker = result.diffMaker
+      self.patch = result.patch
     }
 
-    self.patch = patch
-
-    guard patch.hunkCount > 0
-    else {
-      loadNoChangesNotice()
-      return
-    }
-
-    var targetLines: [String]?
-
-    if let blob = diffTargetBlob() {
-      blob.withUnsafeBytes {
-        (bytes) in
-        var encoding = String.Encoding.utf8
-        let text = String(data: bytes, usedEncoding: &encoding)
-
-        targetLines = text?.components(separatedBy: .newlines)
-      }
-    }
-
-    let json = hunksJSON(patch: patch, targetLines: targetLines)
-    let ext = fileExtensionForDiff()
-    let staging = stagingTypeString()
-
-    ensureEditorLoaded()
-    callJS("await HelmEditor.loadDiff(hunks, staging, ext)",
-           arguments: ["hunks": json, "staging": staging, "ext": ext])
-    isLoaded = true
-  }
-
-  func loadOrNotify(diffResult: PatchMaker.PatchResult?)
-  {
-    if let diffResult = diffResult {
-      switch diffResult {
-        case .noDifference:
-          loadNoChangesNotice()
-        case .binary:
-          loadNotice(.binaryFile)
-        case .diff(let diffMaker):
-          self.diffMaker = diffMaker
-      }
-    }
-    else {
-      loadNoChangesNotice()
+    switch result.instruction {
+      case .clear:
+        clear()
+      case .keepCurrent:
+        break
+      case .noChangesNotice:
+        loadNoChangesNotice()
+      case .notice(let text):
+        loadNotice(text)
+      case .diff(let json, let ext, let staging):
+        ensureEditorLoaded()
+        callJS("await HelmEditor.loadDiff(hunks, staging, ext)",
+               arguments: ["hunks": json, "staging": staging, "ext": ext])
+        isLoaded = true
+      case .text(let content, let ext, let added, let deleted,
+                 let modified):
+        ensureEditorLoaded()
+        if added.isEmpty && deleted.isEmpty && modified.isEmpty {
+          callJS("await HelmEditor.loadText(content, ext)",
+                 arguments: ["content": content, "ext": ext])
+        }
+        else {
+          callJS("""
+              await HelmEditor.loadText(\
+              content, ext, added, deleted, modified)
+              """,
+              arguments: [
+                "content": content, "ext": ext,
+                "added": added, "deleted": deleted,
+                "modified": modified,
+              ])
+        }
+        isLoaded = true
     }
   }
 
@@ -211,57 +346,12 @@ final class FileDiffController: WebViewController,
 
   // MARK: - Text mode
 
-  func loadText(data: Data?, path: String,
-                diffResult: PatchMaker.PatchResult? = nil)
-  {
-    let text: String
-
-    if let data = data,
-       let decoded = String(data: data, encoding: .utf8) ??
-                     String(data: data, encoding: .utf16)
-    {
-      text = decoded
-    }
-    else {
-      text = ""
-    }
-
-    loadText(text: text, path: path,
-             diffResult: diffResult)
-  }
-
-  func loadText(text: String, path: String,
-                diffResult: PatchMaker.PatchResult? = nil)
-  {
-    let ext = (path as NSString).pathExtension
-    let (added, deleted, modified) =
-        changedLineNumbers(from: diffResult)
-
-    ensureEditorLoaded()
-    if added.isEmpty && deleted.isEmpty && modified.isEmpty {
-      callJS("await HelmEditor.loadText(content, ext)",
-             arguments: ["content": text, "ext": ext])
-    }
-    else {
-      callJS("""
-          await HelmEditor.loadText(\
-          content, ext, added, deleted, modified)
-          """,
-          arguments: [
-            "content": text, "ext": ext,
-            "added": added, "deleted": deleted,
-            "modified": modified,
-          ])
-    }
-    isLoaded = true
-  }
-
   /// Extracts changed line numbers from a diff result.
   /// Returns three sets of new-file line numbers:
   /// - `added`: pure additions (green gutter)
   /// - `modified`: replacement lines (blue gutter)
   /// - `deleted`: pure deletion points (red gutter)
-  private func changedLineNumbers(
+  private nonisolated static func changedLineNumbers(
       from diffResult: PatchMaker.PatchResult?)
     -> (added: [Int], deleted: [Int],
         modified: [Int])
@@ -402,25 +492,50 @@ extension FileDiffController: FileContentLoading
     switch selection.count {
       case 0:
         clear()
-        return
       case 1:
-        self.stagingType = selection[0].staging
-
-        let fileList = selection[0].fileList
-        let path = selection[0].path
-        let diffResult = fileList.diffForFile(path)
-
-        switch mode {
-          case .diff:
-            loadOrNotify(diffResult: diffResult)
-          case .text:
-            loadText(
-              data: fileList.dataForFile(path),
-              path: path,
-              diffResult: diffResult)
-        }
+        loadSingle(selection[0])
       default:
         loadNotice(.multipleItemsSelected)
+    }
+  }
+
+  /// Computes the diff/text off the main thread on the repository queue,
+  /// then renders the result on the main thread. Serializing the libgit2
+  /// work with the queue means a busy queue no longer blocks the preview.
+  private func loadSingle(_ selection: FileSelection)
+  {
+    let input = DiffInput(fileList: selection.fileList, repo: repo)
+    let path = selection.path
+    let staging = selection.staging
+    let mode = self.mode
+    let whitespace = self.whitespace
+    let contextLines = self.contextLines
+
+    guard let queue = queue
+    else {
+      // No queue wired (e.g. unit tests): compute inline.
+      let result = Self.computeDiff(
+          fileList: input.fileList, path: path, repo: input.repo,
+          stagingType: staging, mode: mode,
+          whitespace: whitespace, contextLines: contextLines)
+
+      apply(result, stagingType: staging)
+      return
+    }
+
+    queue.executeAsync {
+      [weak self] in
+      guard let self = self
+      else { return }
+
+      let result = Self.computeDiff(
+          fileList: input.fileList, path: path, repo: input.repo,
+          stagingType: staging, mode: mode,
+          whitespace: whitespace, contextLines: contextLines)
+
+      await MainActor.run {
+        self.apply(result, stagingType: staging)
+      }
     }
   }
 
