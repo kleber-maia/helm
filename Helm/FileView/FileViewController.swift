@@ -65,6 +65,10 @@ final class FileViewController: NSViewController, RepositoryWindowViewController
   var indexTimer: Timer?
   var sinks: [AnyCancellable] = []
 
+  /// The selection currently shown in the preview, used to avoid reloading
+  /// (and resetting scroll) when a refresh re-selects the same file.
+  private var displayedSelection: [FileSelection] = []
+
   var contentControllers: [FileContentLoading]
   { [diffController] }
   
@@ -237,7 +241,9 @@ final class FileViewController: NSViewController, RepositoryWindowViewController
               : listController === self.commitListController
           guard isActive else { return }
           self.activeFileList = listController.outlineView
-          self.refreshPreview()
+          // Not forced: a re-selection of the same file (e.g. after a
+          // background refresh) keeps the existing diff and scroll position.
+          self.refreshPreview(force: false)
         }
     })
     if let window = view.window {
@@ -664,10 +670,17 @@ final class FileViewController: NSViewController, RepositoryWindowViewController
     (activeFileList.dataSource as? FileListDataSource)?.reload()
   }
   
-  func refreshPreview()
+  /// Reloads the preview for the current selection.
+  ///
+  /// Pass `force: false` when the trigger is merely a (re)selection — e.g.
+  /// the file list re-selecting the same row after a background refresh.
+  /// In that case an unchanged selection is left untouched so the user's
+  /// scroll position in the diff is preserved. Pass `force: true` when the
+  /// underlying content may have changed (index/workspace edits).
+  func refreshPreview(force: Bool = true)
   {
     DispatchQueue.main.async {
-      self.loadSelectedPreview(force: true)
+      self.loadSelectedPreview(force: force)
     }
   }
   
@@ -736,9 +749,6 @@ final class FileViewController: NSViewController, RepositoryWindowViewController
   
   func loadSelectedPreview(force: Bool = false)
   {
-    guard !contentController.isLoaded || force
-    else { return }
-
     let changes = selectedChanges
     guard !changes.isEmpty,
           let repo = repo,
@@ -747,6 +757,7 @@ final class FileViewController: NSViewController, RepositoryWindowViewController
           let controller = repoUIController,
           let repoSelection = controller.selection
     else {
+      displayedSelection = []
       clearPreviews()
       return
     }
@@ -777,7 +788,15 @@ final class FileViewController: NSViewController, RepositoryWindowViewController
       FileSelection(repoSelection: repoSelection, path: $0.gitPath,
                     staging: stagingType)
     }
-    
+
+    // Skip reloading when the same selection is already displayed and the
+    // caller isn't forcing a content refresh. Preserves the user's scroll
+    // position during refreshes that merely re-select the same file.
+    if !force, contentController.isLoaded, selection == displayedSelection {
+      return
+    }
+    displayedSelection = selection
+
     // load() dispatches the libgit2 work to the repository queue itself
     // and renders back on the main thread, so this no longer blocks.
     contentController.load(selection: selection)
