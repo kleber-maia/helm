@@ -2,6 +2,15 @@ import Cocoa
 import SwiftUI
 import Combine
 
+/// Identifies the visible state of the commit history: the ordered commits
+/// plus the refs (which render as branch/tag labels on rows). Used to skip a
+/// full table reload when a refresh didn't actually change anything.
+private struct HistorySignature: Equatable
+{
+  let commitOIDs: [GitOID]
+  let refs: [String: GitOID]
+}
+
 final class HistoryTableController: NSViewController,
                                     RepositoryWindowViewController
 {
@@ -26,6 +35,7 @@ final class HistoryTableController: NSViewController,
   private var isLoadingHistory = false
   private var pendingHistoryReload = false
   private var currentBranch: LocalBranchRefName?
+  private var lastHistorySignature: HistorySignature?
   
   func finishLoad(repository: any Repository)
   {
@@ -37,8 +47,12 @@ final class HistoryTableController: NSViewController,
     if let repository = repository as? HelmRepository {
       sinks.append(repository.currentBranchPublisher.sinkOnMainQueue {
         [weak self] branch in
-        self?.currentBranch = branch
-        self?.tableView.reloadData()
+        guard let self = self,
+              self.currentBranch != branch
+        else { return }
+
+        self.currentBranch = branch
+        self.tableView.reloadData()
       })
     }
 
@@ -146,9 +160,12 @@ final class HistoryTableController: NSViewController,
       
       let refs = repository.allRefs()
       repoLogger.publicInfo("history walk refs count=\(refs.count)")
-      
+
+      var refOIDs = [String: GitOID]()
+
       for ref in refs where ref.fullPath != "refs/stash" {
         if let oid = repository.oid(forRef: ref) {
+          refOIDs[ref.fullPath] = oid
           walker.push(oid: oid)
         }
       }
@@ -158,6 +175,10 @@ final class HistoryTableController: NSViewController,
           repository.commit(forOID: $0) as? GitCommit
         })
       }
+
+      let signature = HistorySignature(
+          commitOIDs: history.withSync { history.entries.map { $0.commit.id } },
+          refs: refOIDs)
       repoLogger.publicInfo("""
           history walk end generation=\(generation) \
           commits=\(history.withSync { history.entries.count })
@@ -175,7 +196,8 @@ final class HistoryTableController: NSViewController,
           [weak self] in
           self?.finishHistoryLoad(generation: generation,
                                   tableView: tableView,
-                                  reloadTable: true)
+                                  reloadTable: true,
+                                  signature: signature)
         }
       }
     }
@@ -183,7 +205,8 @@ final class HistoryTableController: NSViewController,
 
   private func finishHistoryLoad(generation: Int,
                                  tableView: NSTableView?,
-                                 reloadTable: Bool)
+                                 reloadTable: Bool,
+                                 signature: HistorySignature? = nil)
   {
     guard history.isCurrentGeneration(generation)
     else {
@@ -210,6 +233,18 @@ final class HistoryTableController: NSViewController,
           """)
       return
     }
+
+    // Nothing visibly changed (same commits, same refs): skip the full
+    // reload so the table doesn't flash and the selection/scroll stay put.
+    if let signature = signature,
+       signature == lastHistorySignature {
+      repoLogger.publicInfo("""
+          history load end generation=\(generation) reload=skipped \
+          reason=unchanged
+          """)
+      return
+    }
+    lastHistorySignature = signature
 
     updateGraphColumnOffset()
     tableView?.reloadData()
