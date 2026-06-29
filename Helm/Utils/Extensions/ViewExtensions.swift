@@ -20,6 +20,23 @@ extension NSView
   var ancestorWindow: NSWindow?
   { firstAncestor?.window }
 
+  /// Returns the first descendant view of the given type, searching the
+  /// subview tree breadth-first.
+  func firstDescendant<T: NSView>(ofType type: T.Type) -> T?
+  {
+    var queue = subviews
+
+    while !queue.isEmpty {
+      let next = queue.removeFirst()
+
+      if let match = next as? T {
+        return match
+      }
+      queue.append(contentsOf: next.subviews)
+    }
+    return nil
+  }
+
   /// Adds 1pt separator lines at the top and bottom edges, matching
   /// the standard `NSTableHeaderView` appearance.
   func addBorderLines()

@@ -10,6 +10,14 @@ final class TabbedSidebarController: NSHostingController<AnyView>
   weak var controller: HelmWindowController?
   private var sinks: [AnyCancellable] = []
 
+  /// Local mouse monitor used to detect clicks on the already-selected sidebar
+  /// row, which SwiftUI's `List` otherwise ignores.
+  private var reselectMonitor: Any?
+
+  /// The `NSTableView` (actually an `NSOutlineView`) backing the SwiftUI list,
+  /// looked up lazily once the view hierarchy exists.
+  private weak var sidebarTableView: NSTableView?
+
   /// Shared sidebar state injected into the SwiftUI hierarchy.
   let coordinator = SidebarCoordinator()
 
@@ -69,6 +77,74 @@ final class TabbedSidebarController: NSHostingController<AnyView>
     // NSSplitViewItem(sidebarWithViewController:) show through.
     view.wantsLayer = true
     view.layer?.backgroundColor = .clear
+  }
+
+  override func viewDidAppear()
+  {
+    super.viewDidAppear()
+    installReselectMonitorIfNeeded()
+  }
+
+  deinit
+  {
+    if let reselectMonitor {
+      NSEvent.removeMonitor(reselectMonitor)
+    }
+  }
+
+  /// Installs a non-consuming local mouse monitor. Clicking the row that is
+  /// already selected does not change SwiftUI's `List` selection, so the
+  /// history view would otherwise stay on whatever commit the user had
+  /// navigated to. The monitor detects a click landing on the already-selected
+  /// row (before the table processes it) and re-applies that selection, while
+  /// returning the event untouched so native selection and focus still work.
+  private func installReselectMonitorIfNeeded()
+  {
+    guard reselectMonitor == nil
+    else { return }
+
+    reselectMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) {
+      [weak self] event in
+      self?.handlePotentialReselect(event)
+      return event
+    }
+  }
+
+  private func handlePotentialReselect(_ event: NSEvent)
+  {
+    guard let window = view.window,
+          event.window === window,
+          let table = sidebarTable(),
+          let selection = coordinator.selection
+    else { return }
+
+    let point = table.convert(event.locationInWindow, from: nil)
+
+    guard table.bounds.contains(point)
+    else { return }
+
+    let row = table.row(at: point)
+
+    guard row != -1,
+          row == table.selectedRow
+    else { return }
+
+    DispatchQueue.main.async {
+      [weak self] in
+      self?.coordinator.reselect(selection)
+    }
+  }
+
+  private func sidebarTable() -> NSTableView?
+  {
+    if let sidebarTableView {
+      return sidebarTableView
+    }
+
+    let found = view.firstDescendant(ofType: NSTableView.self)
+
+    sidebarTableView = found
+    return found
   }
 
   /// Requests that cached sidebar models refresh their visible data.
@@ -415,5 +491,13 @@ extension TabbedSidebarController: SidebarCoordinatorDelegate
     if !controller.repoController.tryRefsChanged() {
       controller.deferLocalRefreshUntilQueueIdle()
     }
+  }
+
+  func reselect(_ selection: SidebarTreeSelection)
+  {
+    guard let repo = controller?.repository
+    else { return }
+
+    applyRepositorySelection(for: selection, repo: repo)
   }
 }

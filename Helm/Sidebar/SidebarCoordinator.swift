@@ -93,6 +93,7 @@ protocol SidebarCoordinatorDelegate: AnyObject
   func showSubmoduleInFinder(_ name: String)
   func updateSubmodule(_ name: String)
   func refreshSidebar()
+  func reselect(_ selection: SidebarTreeSelection)
 }
 
 /// Presentation data for the tag info popover.
@@ -168,4 +169,11 @@ final class SidebarCoordinator: ObservableObject
 
   /// Re-runs the sidebar models' refresh logic.
   func refresh() { delegate?.refreshSidebar() }
+
+  /// Re-applies the given selection to the history view, even when the
+  /// sidebar's selected row is unchanged (e.g. the user re-clicked it).
+  func reselect(_ selection: SidebarTreeSelection)
+  {
+    delegate?.reselect(selection)
+  }
 }
