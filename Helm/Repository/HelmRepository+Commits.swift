@@ -58,7 +58,7 @@ extension HelmRepository: CommitReferencing
   public typealias RemoteBranch = GitRemoteBranch
   
   var headReference: (any Reference)?
-  { GitReference(headForRepo: gitRepo) }
+  { performReading { GitReference(headForRepo: gitRepo) } }
   
   /// Reloads the cached map of OIDs to refs.
   public func rebuildRefsIndex()
@@ -126,14 +126,26 @@ extension HelmRepository: CommitReferencing
   
   public var headRefName: (any ReferenceName)?
   {
-    objc_sync_enter(self)
-    defer {
-      objc_sync_exit(self)
+    // Resolve HEAD fresh on every access, serialized on `mutex` like every
+    // other libgit2 read. This previously cached the ref name and never
+    // invalidated it, so after a branch switch the stale name still pointed
+    // at the old branch — staged diffs then resolved the HEAD-side blob
+    // against the wrong commit (or found nothing), rendering the whole file
+    // as added. git_repository_head + git_revparse_single are cheap, so
+    // recomputing is preferable to a cache that is never refreshed.
+    performReading {
+      guard let headReference = self.headReference
+      else { return nil }
+
+      switch headReference.type {
+        case .symbolic:
+          return headReference.symbolicTargetName
+        case .direct:
+          return headReference.name
+        default:
+          return nil
+      }
     }
-    if cachedHeadRef == nil {
-      recalculateHead()
-    }
-    return cachedHeadRef
   }
   
   func calculateCurrentBranch() -> LocalBranchRefName?
@@ -162,17 +174,20 @@ extension HelmRepository: CommitReferencing
   
   public func oid(forRef ref: any ReferenceName) -> GitOID?
   {
-    guard let object = try? OpaquePointer.from({
-            git_revparse_single(&$0, gitRepo, ref.fullPath)
-          })
-    else { return nil }
-    defer {
-      git_object_free(object)
+    // git_revparse_single is libgit2; serialize on `mutex` (recursive-safe).
+    performReading {
+      guard let object = try? OpaquePointer.from({
+              git_revparse_single(&$0, gitRepo, ref.fullPath)
+            })
+      else { return nil }
+      defer {
+        git_object_free(object)
+      }
+      guard let oid = git_object_id(object)
+      else { return nil }
+
+      return GitOID(oidPtr: oid)
     }
-    guard let oid = git_object_id(object)
-    else { return nil }
-    
-    return GitOID(oidPtr: oid)
   }
 
   public func tagNames() throws -> [TagRefName]

@@ -51,8 +51,6 @@ public final class HelmRepository: BasicRepository, RepoConfiguring
   public var isWriting: Bool
   { writeStateLock.withLock { isWritingStorage } }
 
-  fileprivate(set) var cachedHeadRef: (any ReferenceName)?
-  fileprivate(set) var cachedHeadSHA: SHA?
   var cachedStagedChanges: [FileChange]?
   {
     get { controller?.cache.stagedChanges }
@@ -231,22 +229,6 @@ public final class HelmRepository: BasicRepository, RepoConfiguring
     rebuildRefsIndex()
     refsChanged()
     return true
-  }
-  
-  func recalculateHead()
-  {
-    guard let headReference = self.headReference
-    else { return }
-    
-    switch headReference.type {
-      case .symbolic:
-        cachedHeadRef = headReference.symbolicTargetName
-      case .direct:
-        cachedHeadRef = headReference.name
-      default:
-        break
-    }
-    cachedHeadSHA = sha(forRef: headReference.name)
   }
   
   func invalidateIndex()

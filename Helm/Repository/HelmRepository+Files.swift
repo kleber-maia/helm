@@ -100,18 +100,26 @@ extension HelmRepository: FileContents
   
   public func commitBlob(commit: GitCommit?, path: String) -> GitBlob?
   {
-    commit?.tree?.entry(path: path)?.object as? GitBlob
+    // Tree/blob access is libgit2; serialize on `mutex` (recursive, so this
+    // is safe when already called from within another performReading).
+    performReading {
+      commit?.tree?.entry(path: path)?.object as? GitBlob
+    }
   }
-  
+
   public func fileBlob(ref: any ReferenceName, path: String) -> GitBlob?
   {
-    commitBlob(commit: oid(forRef: ref).flatMap { commit(forOID: $0) },
-               path: path)
+    performReading {
+      commitBlob(commit: oid(forRef: ref).flatMap { commit(forOID: $0) },
+                 path: path)
+    }
   }
-  
+
   public func fileBlob(oid: GitOID, path: String) -> GitBlob?
   {
-    return commitBlob(commit: commit(forOID: oid), path: path)
+    performReading {
+      commitBlob(commit: commit(forOID: oid), path: path)
+    }
   }
   
   /// Returns a file URL for a given relative path.
@@ -154,6 +162,20 @@ extension HelmRepository: FileDiffing
     return .diff(PatchMaker(from: fromSource, to: toSource, path: file))
   }
   
+  /// The path used to locate the comparison-base (HEAD / HEAD~1) blob for a
+  /// staged change. For a rename the base tree holds the file under its OLD
+  /// path; looking it up by the new path misses and renders the whole file
+  /// as added.
+  private func baseSidePath(for file: String,
+                            in changes: [FileChange]) -> String
+  {
+    let renamed = changes.first {
+      $0.gitPath == file && $0.status == .renamed && !$0.oldPath.isEmpty
+    }
+
+    return renamed?.oldPath ?? file
+  }
+
   /// Returns a diff maker for a file in the index, compared to HEAD
   public func stagedDiff(file: String) -> PatchMaker.PatchResult?
   {
@@ -164,14 +186,15 @@ extension HelmRepository: FileDiffing
       guard let headRef = self.headRefName
       else { return nil }
       let indexBlob = stagedBlob(file: file)
-      let headBlob = fileBlob(ref: headRef, path: file)
+      let headPath = baseSidePath(for: file, in: stagedChanges())
+      let headBlob = fileBlob(ref: headRef, path: headPath)
 
       return .diff(PatchMaker(from: PatchMaker.SourceType(headBlob),
                                to: PatchMaker.SourceType(indexBlob),
                                path: file))
     }
   }
-  
+
   /// Returns a diff maker for a file in the index, compared to HEAD-1.
   public func amendingStagedDiff(file: String)
     -> PatchMaker.PatchResult?
@@ -182,8 +205,9 @@ extension HelmRepository: FileDiffing
     return performReading {
       guard let headCommit = self.headCommit
       else { return nil }
+      let basePath = baseSidePath(for: file, in: amendingStagedChanges())
       let blob = headCommit.parentOIDs.first
-                           .flatMap { fileBlob(oid: $0, path: file) }
+                           .flatMap { fileBlob(oid: $0, path: basePath) }
       let indexBlob = stagedBlob(file: file)
 
       return .diff(PatchMaker(from: PatchMaker.SourceType(blob),
