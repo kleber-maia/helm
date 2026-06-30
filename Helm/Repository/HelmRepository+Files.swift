@@ -71,11 +71,14 @@ extension HelmRepository: FileContents
   
   public func contentsOfFile(path: String, at commit: any Helm.Commit) -> Data?
   {
-    guard let entry = (commit as? GitCommit)?.tree?.entry(path: path),
-          let blob = entry.object as? GitBlob
-    else { return nil }
-    
-    return blob.makeData()
+    // Tree/blob access is libgit2; serialize on `mutex` (recursive-safe).
+    performReading {
+      guard let entry = (commit as? GitCommit)?.tree?.entry(path: path),
+            let blob = entry.object as? GitBlob
+      else { return nil }
+
+      return blob.makeData()
+    }
   }
   
   public func contentsOfStagedFile(path: String) -> Data?

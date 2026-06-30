@@ -33,7 +33,8 @@ extension HelmRepository: RemoteManagement
 
     do {
       _ = try Signpost.interval(.networkOperation) {
-        try executeGit(args: ["push", remoteName] + refspecs, writes: true)
+        try executeGit(args: ["push", remoteName] + refspecs,
+                       writes: true, network: true)
       }
       repoLogger.publicInfo("""
           remote push end remote=\(remoteName) transport=cli \
@@ -67,7 +68,7 @@ extension HelmRepository: RemoteManagement
 
     do {
       _ = try Signpost.interval(.networkOperation) {
-        try executeGit(args: args, writes: true)
+        try executeGit(args: args, writes: true, network: true)
       }
       repoLogger.publicInfo("""
           remote fetch end remote=\(remoteName) transport=cli \
@@ -124,7 +125,8 @@ extension HelmRepository: RemoteManagement
 
     do {
       _ = try Signpost.interval(.networkOperation) {
-        try executeGit(args: ["push", remoteName, refspec], writes: true)
+        try executeGit(args: ["push", remoteName, refspec],
+                       writes: true, network: true)
       }
       repoLogger.publicInfo("""
           remote deleteBranch end remote=\(remoteName) transport=cli \

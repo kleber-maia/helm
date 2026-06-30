@@ -281,66 +281,92 @@ public final class HelmRepository: BasicRepository, RepoConfiguring
   
   func executeGit(args: [String],
                   stdIn: String?,
-                  writes: Bool) throws -> Data
+                  writes: Bool,
+                  network: Bool = false) throws -> Data
   {
     return try executeGit(args: args,
                           stdInData: stdIn?.data(using: .utf8),
-                          writes: writes)
+                          writes: writes,
+                          network: network)
   }
-  
+
+  /// Runs a git CLI command.
+  /// - parameter network: Pass `true` for operations that talk to a remote
+  ///   (push/fetch/clone). Local operations mutate `.git` state (index, refs,
+  ///   objects) that libgit2 also reads, so they serialize on `mutex` to be
+  ///   mutually exclusive with libgit2 reads/writes — a `git add` rewriting
+  ///   the index must not race a concurrent libgit2 index read, which
+  ///   produced torn/empty diffs. Local commands are fast, so briefly
+  ///   blocking reads is correct. Network commands can run for a long time;
+  ///   holding `mutex` across the transfer would beachball the UI, so they
+  ///   keep their own `objc_sync(self)` serialization and never take `mutex`.
   func executeGit(args: [String],
                   stdInData: Data? = nil,
-                  writes: Bool) throws -> Data
+                  writes: Bool,
+                  network: Bool = false) throws -> Data
   {
     guard FileManager.default.fileExists(atPath: repoURL.path)
     else {
       throw NSError(domain: NSCocoaErrorDomain, code: NSFileNoSuchFileError,
                     userInfo: nil)
     }
-    
+
     let command = "git \(args.joined(separator: " "))"
     let started = Date()
 
     repoLogger.publicInfo("""
         repository git begin path=\(self.repoURL.path) writes=\(writes) \
-        inputBytes=\(stdInData?.count ?? 0) command=\(command)
+        network=\(network) inputBytes=\(stdInData?.count ?? 0) command=\(command)
         """)
-    objc_sync_enter(self)
-    defer {
-      objc_sync_exit(self)
-    }
-    if writes && isWriting {
-      repoLogger.publicError("""
-          repository git rejected path=\(self.repoURL.path) writes=\(writes) \
-          reason=alreadyWriting command=\(command)
-          """)
-      throw RepoError.alreadyWriting
-    }
-    
-    let wasWriting = isWriting
 
-    updateIsWriting(wasWriting || writes)
-    defer {
-      updateIsWriting(wasWriting)
-    }
-    
-    do {
-      let output = try gitRunner.run(inputData: stdInData, args: args)
+    func runCommand() throws -> Data
+    {
+      if writes && isWriting {
+        repoLogger.publicError("""
+            repository git rejected path=\(self.repoURL.path) writes=\(writes) \
+            reason=alreadyWriting command=\(command)
+            """)
+        throw RepoError.alreadyWriting
+      }
 
-      repoLogger.publicInfo("""
-          repository git end path=\(self.repoURL.path) writes=\(writes) \
-          outputBytes=\(output.count) duration=\(Date().timeIntervalSince(started)) \
-          command=\(command)
-          """)
-      return output
+      let wasWriting = isWriting
+
+      updateIsWriting(wasWriting || writes)
+      defer {
+        updateIsWriting(wasWriting)
+      }
+
+      do {
+        let output = try gitRunner.run(inputData: stdInData, args: args)
+
+        repoLogger.publicInfo("""
+            repository git end path=\(self.repoURL.path) writes=\(writes) \
+            outputBytes=\(output.count) \
+            duration=\(Date().timeIntervalSince(started)) command=\(command)
+            """)
+        return output
+      }
+      catch {
+        repoLogger.publicError("""
+            repository git failed path=\(self.repoURL.path) writes=\(writes) \
+            duration=\(Date().timeIntervalSince(started)) command=\(command) \
+            error=\(String(describing: error))
+            """)
+        throw error
+      }
     }
-    catch {
-      repoLogger.publicError("""
-          repository git failed path=\(self.repoURL.path) writes=\(writes) \
-          duration=\(Date().timeIntervalSince(started)) command=\(command) \
-          error=\(String(describing: error))
-          """)
-      throw error
+
+    if network {
+      objc_sync_enter(self)
+      defer {
+        objc_sync_exit(self)
+      }
+      return try runCommand()
+    }
+    else {
+      return try mutex.withLock {
+        try runCommand()
+      }
     }
   }
 }

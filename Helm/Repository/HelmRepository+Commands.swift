@@ -4,7 +4,8 @@ public extension HelmRepository
 {
   func push(remote: String) throws
   {
-    _ = try executeGit(args: ["push", "--all", remote], writes: true)
+    _ = try executeGit(args: ["push", "--all", remote],
+                       writes: true, network: true)
   }
   
   func moveHead(to refName: some ReferenceName) throws
@@ -232,7 +233,7 @@ extension HelmRepository: SubmoduleManagement
     // By default, git doesn't allow adding submodules using file:// urls
     _ = try executeGit(args: ["-c", "protocol.file.allow=always",
                               "submodule", "add", "-f", url, path],
-                       writes: true)
+                       writes: true, network: true)
     /* still needs clone
     _ = try performWriting {
      git_submodule *gitSub = NULL;
