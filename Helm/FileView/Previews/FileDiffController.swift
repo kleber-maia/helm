@@ -546,4 +546,12 @@ extension FileDiffController: FileContentLoading
     isLoaded = false
     load(selection: lastSelection)
   }
+
+  /// After the editor recovers from a web content process crash, the
+  /// rendered diff/text was lost with the dead page. Re-render the current
+  /// selection against the freshly reloaded editor.
+  override func editorDidRecover()
+  {
+    reloadCurrentSelection()
+  }
 }

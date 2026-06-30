@@ -38,7 +38,18 @@ public final class HelmRepository: BasicRepository, RepoConfiguring
   
   public weak var controller: RepositoryController? = nil
   
-  fileprivate(set) public var isWriting = false
+  /// Dedicated leaf lock for the `isWriting` flag. It is only ever held for
+  /// the trivial duration of reading or writing the bool below — never while
+  /// acquiring `mutex` or `objc_sync(self)`. Keeping it a leaf prevents the
+  /// lock-ordering cycle that previously deadlocked the app: `executeGit`
+  /// holds `objc_sync(self)` and used to take `mutex` (via `updateIsWriting`)
+  /// to flip this flag, while `performReading`/`performWriting` hold `mutex`
+  /// and then shell out to CLI git (`objc_sync(self)`) — opposite orders.
+  private let writeStateLock = NSLock()
+  private var isWritingStorage = false
+
+  public var isWriting: Bool
+  { writeStateLock.withLock { isWritingStorage } }
 
   fileprivate(set) var cachedHeadRef: (any ReferenceName)?
   fileprivate(set) var cachedHeadSHA: SHA?
@@ -138,15 +149,35 @@ public final class HelmRepository: BasicRepository, RepoConfiguring
   
   func updateIsWriting(_ writing: Bool)
   {
-    guard writing != isWriting
-    else { return }
-    
-    mutex.withLock {
-      isWriting = writing
+    writeStateLock.withLock {
+      guard writing != isWritingStorage
+      else { return }
+
+      isWritingStorage = writing
       repoLogger.publicDebug("""
           repository writingState path=\(self.repoURL.path) writing=\(writing)
           """)
     }
+  }
+
+  /// Atomically marks a write as started, returning `false` if one is already
+  /// in progress. Both the libgit2 (`performWriting`) and CLI (`writing`)
+  /// paths funnel their "already writing?" guard through this single leaf
+  /// lock, so they correctly exclude each other without nesting locks.
+  private func beginWriting() -> Bool
+  {
+    writeStateLock.withLock {
+      guard !isWritingStorage
+      else { return false }
+
+      isWritingStorage = true
+      return true
+    }
+  }
+
+  private func endWriting()
+  {
+    writeStateLock.withLock { isWritingStorage = false }
   }
     
   func clearCachedBranch()
@@ -229,38 +260,40 @@ public final class HelmRepository: BasicRepository, RepoConfiguring
     let started = Date()
 
     repoLogger.publicDebug("repository writing request path=\(self.repoURL.path)")
-    objc_sync_enter(self)
-    defer {
-      objc_sync_exit(self)
-    }
-    
-    guard !isWriting
-    else {
-      repoLogger.publicError("""
-          repository writing rejected path=\(self.repoURL.path) \
-          reason=alreadyWriting
-          """)
-      throw RepoError.alreadyWriting
-    }
+    // libgit2 writes serialize on `mutex`, the same lock guarding
+    // `performReading`/`performWriting`, so all libgit2 access against the
+    // shared `git_repository` is mutually exclusive. `objc_sync(self)` is
+    // reserved exclusively for serializing CLI git subprocesses
+    // (`executeGit`); mixing the two here previously let a libgit2 write run
+    // concurrently with a libgit2 read.
+    return try mutex.withLock {
+      guard beginWriting()
+      else {
+        repoLogger.publicError("""
+            repository writing rejected path=\(self.repoURL.path) \
+            reason=alreadyWriting
+            """)
+        throw RepoError.alreadyWriting
+      }
 
-    isWriting = true
-    repoLogger.publicInfo("repository writing begin path=\(self.repoURL.path)")
-    defer {
-      isWriting = false
-      repoLogger.publicInfo("""
-          repository writing end path=\(self.repoURL.path) \
-          duration=\(Date().timeIntervalSince(started))
-          """)
-    }
-    do {
-      return try block()
-    }
-    catch {
-      repoLogger.publicError("""
-          repository writing failed path=\(self.repoURL.path) \
-          error=\(String(describing: error))
-          """)
-      throw error
+      repoLogger.publicInfo("repository writing begin path=\(self.repoURL.path)")
+      defer {
+        endWriting()
+        repoLogger.publicInfo("""
+            repository writing end path=\(self.repoURL.path) \
+            duration=\(Date().timeIntervalSince(started))
+            """)
+      }
+      do {
+        return try block()
+      }
+      catch {
+        repoLogger.publicError("""
+            repository writing failed path=\(self.repoURL.path) \
+            error=\(String(describing: error))
+            """)
+        throw error
+      }
     }
   }
   
@@ -338,17 +371,17 @@ extension HelmRepository: WritingManagement
 
     repoLogger.publicDebug("repository performWriting request path=\(self.repoURL.path)")
     try mutex.withLock {
-      if isWriting {
+      guard beginWriting()
+      else {
         repoLogger.publicError("""
             repository performWriting rejected path=\(self.repoURL.path) \
             reason=alreadyWriting
             """)
         throw RepoError.alreadyWriting
       }
-      isWriting = true
       repoLogger.publicInfo("repository performWriting begin path=\(self.repoURL.path)")
       defer {
-        isWriting = false
+        endWriting()
         repoLogger.publicInfo("""
             repository performWriting end path=\(self.repoURL.path) \
             duration=\(Date().timeIntervalSince(started))

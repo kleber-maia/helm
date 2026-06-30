@@ -10,6 +10,9 @@ class WebViewController: NSViewController
   private var userContentController: ControllerMessageHandler = .init()
   private(set) var editorReady = false
   private var pageRequested = false
+  /// Set when the web content process terminated and the page is being
+  /// reloaded, so `editorDidRecover()` fires once the fresh page is ready.
+  private var recovering = false
   var pendingCalls: [() -> Void] = []
 
   var defaults: UserDefaults = .helm
@@ -119,6 +122,10 @@ class WebViewController: NSViewController
         tabWidth = savedTabWidth
         wrapping = savedWrapping ?? defaults.wrapping
         flushPendingCalls()
+        if recovering {
+          recovering = false
+          editorDidRecover()
+        }
       }
       return
     }
@@ -130,6 +137,14 @@ class WebViewController: NSViewController
 
   nonisolated func webMessage(action: String, sha: SHA?,
                                index: Int?)
+  {
+    // override
+  }
+
+  /// Called after the editor page has reloaded following a web content
+  /// process crash. Subclasses override this to re-render their current
+  /// content, which was lost when the process died.
+  @objc dynamic func editorDidRecover()
   {
     // override
   }
@@ -212,5 +227,24 @@ extension WebViewController: WKNavigationDelegate
         scrollView.horizontalScrollElasticity = .none
       }
     }
+  }
+
+  /// The web content process can crash independently of the app (memory
+  /// pressure, WebKit faults). When it does, the editor page is gone and
+  /// the view is blank. Without this handler the page is never reloaded:
+  /// `editorReady` stays true, so later `evaluateJS`/`callJS` calls run
+  /// against a dead page and silently do nothing, leaving the diff/file
+  /// preview permanently empty until the app is relaunched. Reset state,
+  /// reload the page, and let subclasses re-render once it is ready.
+  func webViewWebContentProcessDidTerminate(_ webView: WKWebView)
+  {
+    repoLogger.publicError("""
+        editor web content process terminated; reloading editor page
+        """)
+    editorReady = false
+    pageRequested = false
+    pendingCalls = []
+    recovering = true
+    ensureEditorLoaded()
   }
 }

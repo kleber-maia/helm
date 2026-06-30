@@ -42,24 +42,31 @@ extension HelmRepository: FileContents
     
     switch context {
       case .commit(let commit):
-        if let entry = (commit as? GitCommit)?.tree?.entry(path: path),
-           let blob = entry.object as? GitBlob {
-          return !blob.isBinary
+        // libgit2 tree/blob access must be serialized on `mutex` like all
+        // other repository reads; `performReading` is recursive-safe when
+        // this is already called from within another read.
+        return performReading {
+          if let entry = (commit as? GitCommit)?.tree?.entry(path: path),
+             let blob = entry.object as? GitBlob {
+            return !blob.isBinary
+          }
+          return false
         }
       case .index:
-        if let oid = GitIndex(repository: gitRepo)?.entry(at: path)?.oid,
-           let blob = GitBlob(repository: gitRepo, oid: oid) {
-          return !blob.isBinary
+        return performReading {
+          if let oid = GitIndex(repository: gitRepo)?.entry(at: path)?.oid,
+             let blob = GitBlob(repository: gitRepo, oid: oid) {
+            return !blob.isBinary
+          }
+          return false
         }
       case .workspace:
         let url = self.fileURL(path)
         guard let data = try? Data(contentsOf: url)
         else { return false }
-        
+
         return !data.isBinary()
     }
-    
-    return false
   }
   
   public func contentsOfFile(path: String, at commit: any Helm.Commit) -> Data?
