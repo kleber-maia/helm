@@ -356,17 +356,22 @@ public final class HelmRepository: BasicRepository, RepoConfiguring
       }
     }
 
-    if network {
+    // Only a local *write* must exclude libgit2 access: it mutates .git
+    // state (index/refs/objects) that libgit2 reads, so it serializes on
+    // `mutex`. Local reads (e.g. a potentially slow `git blame`) and network
+    // operations keep their own `objc_sync(self)` serialization and never
+    // take `mutex`, so a slow command cannot block libgit2 reads / the UI.
+    if writes && !network {
+      return try mutex.withLock {
+        try runCommand()
+      }
+    }
+    else {
       objc_sync_enter(self)
       defer {
         objc_sync_exit(self)
       }
       return try runCommand()
-    }
-    else {
-      return try mutex.withLock {
-        try runCommand()
-      }
     }
   }
 }
