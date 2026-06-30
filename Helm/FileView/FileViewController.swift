@@ -648,15 +648,29 @@ final class FileViewController: NSViewController, RepositoryWindowViewController
       indexTimer = Timer.mainScheduledTimer(withTimeInterval: indexDelay,
                                             repeats: false) {
         [weak self] (_) in
-        self?.indexTimer = nil
-        self?.reload()
-        self?.refreshPreview()
-      }
-    }
+        guard let self = self
+        else { return }
 
-    // Ideally, check to see if the selected file has changed
-    if selectionCanCommit {
-      loadSelectedPreview(force: true)
+        self.indexTimer = nil
+        // (#1) Rebuild the staged/unstaged lists FIRST, then recompute the
+        // preview. The list rebuild is what tells `isSelectedItemStaged()`
+        // which side (index vs workspace) the file is now on. Previously a
+        // second, immediate forced reload ran here *before* the rebuild, so
+        // it routed the just-staged file by the stale tree and rendered the
+        // whole file as added; the debounced path then corrected it, causing
+        // a flash.
+        //
+        // (#2) Invalidate the cached displayed selection so the recompute is
+        // never skipped as "unchanged": staging alters the diff content even
+        // when the file's path and staging side are the same. With the cache
+        // cleared, a single `force: false` reload recomputes (and the
+        // re-selection the rebuild triggers de-dupes against it), so a stale
+        // diff can't survive a staging change while we still avoid a
+        // double-render.
+        self.displayedSelection = []
+        self.reload()
+        self.refreshPreview(force: false)
+      }
     }
   }
   
