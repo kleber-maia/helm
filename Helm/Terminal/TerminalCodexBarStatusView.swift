@@ -28,7 +28,7 @@ final class TerminalCodexBarStatusView: NSView
                                                 meterMinimumWidth)
     self.weeklyMeter = TerminalUsageMeterView(symbolName: "calendar",
                                               font: font,
-                                              resetStyle: .date,
+                                              resetStyle: .relative,
                                               minimumWidth:
                                                 meterMinimumWidth)
     super.init(frame: .zero)
@@ -49,7 +49,7 @@ final class TerminalCodexBarStatusView: NSView
                                                minimumWidth: 190)
     self.weeklyMeter = TerminalUsageMeterView(symbolName: "calendar",
                                               font: font,
-                                              resetStyle: .date,
+                                              resetStyle: .relative,
                                               minimumWidth: 190)
     super.init(coder: coder)
     configure()
@@ -119,7 +119,7 @@ private final class TerminalUsageMeterView: NSView
   enum ResetStyle
   {
     case countdown
-    case date
+    case relative
   }
 
   private let symbolView: NSImageView
@@ -154,7 +154,7 @@ private final class TerminalUsageMeterView: NSView
 
     self.symbolView = NSImageView(image: image ?? NSImage())
     self.fixedFont = .monospacedSystemFont(ofSize: 13, weight: .regular)
-    self.resetStyle = .date
+    self.resetStyle = .relative
     self.minimumWidth = 190
     super.init(coder: coder)
     configure()
@@ -269,30 +269,23 @@ private final class TerminalUsageMeterView: NSView
       return "unknown"
     }
 
-    if style == .date {
-      return compactDateText(for: resetsAt)
-    }
-
-    let formatter = DateFormatter()
-
-    formatter.doesRelativeDateFormatting = true
-    formatter.dateStyle = Calendar.current.isDateInToday(resetsAt)
-        ? .none
-        : .short
-    formatter.timeStyle = .short
-    return formatter.string(from: resetsAt)
+    return relativeResetText(until: resetsAt)
   }
 
-  private static func compactDateText(for date: Date) -> String
+  /// Time remaining until `date`, expressed in whole days, or in whole
+  /// hours when less than a day away. Rounding hours first lets a value
+  /// like 23.9h roll cleanly up into "1d" instead of showing "24h".
+  private static func relativeResetText(until date: Date) -> String
   {
-    let formatter = DateFormatter()
+    let remaining = max(0, date.timeIntervalSinceNow)
+    let hours = Int((remaining / 3600).rounded())
 
-    formatter.dateFormat = Calendar.current.isDateInToday(date)
-        ? "h:mma"
-        : "MMM d h:mma"
-    return formatter.string(from: date)
-      .replacingOccurrences(of: "AM", with: "a")
-      .replacingOccurrences(of: "PM", with: "p")
+    if hours < 24 {
+      return "\(max(1, hours))h"
+    }
+
+    let days = Int((Double(hours) / 24).rounded())
+    return "\(days)d"
   }
 
   private static func countdownText(until date: Date) -> String
