@@ -166,7 +166,7 @@ private final class TerminalUsageMeterView: NSView
 
     let percent = max(0, min(100, window.usedPercent))
 
-    percentLabel.stringValue = "\(Int(percent.rounded()))%,"
+    percentLabel.stringValue = "\(Int(percent.rounded()))% for"
     refreshResetText()
     progressLabel.stringValue = Self.progressText(percent: percent)
     progressLabel.textColor = window.hasEnoughRemainingQuota
