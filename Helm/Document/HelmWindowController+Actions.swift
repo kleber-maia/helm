@@ -5,6 +5,7 @@ extension HelmWindowController
   @IBAction
   func refresh(_ sender: AnyObject)
   {
+    titleBarController.refreshCodexBarUsageFromToolbar(for: self)
     refreshWithFetch()
   }
   

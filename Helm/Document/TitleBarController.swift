@@ -55,9 +55,12 @@ class TitleBarController: NSObject
   private var codexBarUsageView: TerminalCodexBarStatusView?
   private var codexBarUsageRefreshTimer: Timer?
   private var codexBarUsageFetchInProgress = false
-  private var codexBarUsageHasStatus = false
-  private var codexBarUsageAgent: CodingAgent?
-  private var lastCodexBarUsageRefreshByAgent: [CodingAgent: Date] = [:]
+  private var codexBarUsageContext: CodexBarUsageContext?
+  private var codexBarUsageFetchContext: CodexBarUsageContext?
+  private var lastCodexBarUsageRefreshByContext:
+      [CodexBarUsageContext: Date] = [:]
+  private var lastCodexBarUsageFailureByContext:
+      [CodexBarUsageContext: Date] = [:]
   private var searchToolbarItem: NSSearchToolbarItem?
   private var previousSearchItem: NSToolbarItem?
   private var nextSearchItem: NSToolbarItem?
@@ -467,6 +470,18 @@ extension TitleBarController
   }
 }
 
+private struct CodexBarUsageContext: Hashable
+{
+  let controllerID: ObjectIdentifier
+  let agent: CodingAgent
+
+  init(controller: HelmWindowController, agent: CodingAgent)
+  {
+    controllerID = ObjectIdentifier(controller)
+    self.agent = agent
+  }
+}
+
 extension NSToolbarItem.Identifier
 {
   static let navigation: Self = ◊"helm.nav"
@@ -633,20 +648,38 @@ extension TitleBarController: NSToolbarDelegate
 
 extension TitleBarController
 {
-  private var activeWindowController: HelmWindowController?
+  private var selectedWindowController: HelmWindowController?
   {
     (window?.tabGroup?.selectedWindow?.windowController
      ?? window?.windowController) as? HelmWindowController
   }
 
-  private var repoConfig: (any Config)?
-  {
-    activeWindowController?.repoDocument?.repository?.config
-  }
-
   private var currentCodingAgent: CodingAgent
   {
-    repoConfig?.codingAgent ?? UserDefaults.helm.codingAgent
+    codingAgent(for: selectedWindowController)
+  }
+
+  private func codingAgent(for controller: HelmWindowController?)
+    -> CodingAgent
+  {
+    controller?.terminalPanelController?.terminalController.agent ??
+        controller?.repoDocument?.repository?.config.codingAgent ??
+        controller?.defaults.codingAgent ??
+        UserDefaults.helm.codingAgent
+  }
+
+  private var currentCodexBarUsageContext: CodexBarUsageContext?
+  {
+    guard let controller = selectedWindowController,
+          controller.titleBarController === self,
+          controller.window?.isMainWindow == true
+    else { return nil }
+
+    let agent = codingAgent(for: controller)
+    guard agent.codexBarProviderID != nil
+    else { return nil }
+
+    return CodexBarUsageContext(controller: controller, agent: agent)
   }
 
   private func makeCodingAgentToolbarItem() -> NSMenuToolbarItem
@@ -702,9 +735,15 @@ extension TitleBarController
     startCodexBarUsageUpdates()
   }
 
-  func refreshCodexBarUsageAfterRepositoryRefresh()
+  func refreshCodexBarUsageAfterRepositoryRefresh(
+    for controller: HelmWindowController)
   {
-    refreshCodexBarUsageItem()
+    refreshCodexBarUsageItem(for: controller)
+  }
+
+  func refreshCodexBarUsageFromToolbar(for controller: HelmWindowController)
+  {
+    refreshCodexBarUsageItem(for: controller, force: true)
   }
 
   private func startCodexBarUsageUpdates()
@@ -719,61 +758,101 @@ extension TitleBarController
     }
   }
 
-  private func refreshCodexBarUsageItem()
+  private func refreshCodexBarUsageItem(force: Bool = false)
   {
-    guard !codexBarUsageFetchInProgress
-    else { return }
-
-    let agent = currentCodingAgent
-    guard agent.codexBarProviderID != nil
+    guard let context = currentCodexBarUsageContext
     else {
-      codexBarUsageHasStatus = false
-      codexBarUsageAgent = nil
+      clearCodexBarUsageState()
       hideCodexBarUsageItem()
       return
     }
 
-    // A change of displayed agent (the user switched) must fetch right away.
-    // The interval throttle only applies to periodic auto-refreshes of the
-    // agent that is already showing.
-    let agentChanged = agent != codexBarUsageAgent
-    let lastRefresh = lastCodexBarUsageRefreshByAgent[agent] ?? .distantPast
+    refreshCodexBarUsageItem(for: context, force: force)
+  }
 
-    guard agentChanged ||
-          Date().timeIntervalSince(lastRefresh) >=
-            Self.codexBarUsageRefreshInterval
+  private func refreshCodexBarUsageItem(for controller: HelmWindowController,
+                                        force: Bool = false)
+  {
+    guard controller.titleBarController === self,
+          controller.window?.isMainWindow == true,
+          selectedWindowController === controller
     else { return }
 
-    if codexBarUsageAgent != nil,
-       codexBarUsageAgent != agent,
-       !codexBarUsageHasStatus {
-      codexBarUsageHasStatus = false
-      codexBarUsageAgent = nil
+    let agent = codingAgent(for: controller)
+    guard agent.codexBarProviderID != nil
+    else {
+      clearCodexBarUsageState()
+      hideCodexBarUsageItem()
+      return
+    }
+
+    refreshCodexBarUsageItem(
+      for: CodexBarUsageContext(controller: controller, agent: agent),
+      force: force
+    )
+  }
+
+  private func refreshCodexBarUsageItem(for context: CodexBarUsageContext,
+                                        force: Bool = false)
+  {
+    guard !codexBarUsageFetchInProgress
+    else { return }
+
+    if codexBarUsageContext != nil,
+       codexBarUsageContext != context {
+      clearCodexBarUsageState()
       hideCodexBarUsageItem()
     }
 
-    lastCodexBarUsageRefreshByAgent[agent] = Date()
+    // A user-driven agent switch must fetch right away. Failed fetches still
+    // update the attempted context so repository refreshes do not bypass the
+    // throttle and repeatedly trigger provider credential prompts.
+    let contextChanged = context != codexBarUsageFetchContext
+    let now = Date()
+    let lastRefresh = lastCodexBarUsageRefreshByContext[context] ??
+        .distantPast
+    let lastFailure = lastCodexBarUsageFailureByContext[context] ??
+        .distantPast
+
+    guard force ||
+          contextChanged ||
+          (now.timeIntervalSince(lastRefresh) >=
+             Self.codexBarUsageRefreshInterval &&
+           now.timeIntervalSince(lastFailure) >=
+             Self.codexBarUsageFailureRetryInterval)
+    else { return }
+
+    codexBarUsageFetchContext = context
+    lastCodexBarUsageRefreshByContext[context] = now
     codexBarUsageFetchInProgress = true
-    CodexBarUsageFetcher.shared.fetch(for: agent) {
+    CodexBarUsageFetcher.shared.fetch(for: context.agent) {
       [weak self] status in
       guard let self
       else { return }
 
       self.codexBarUsageFetchInProgress = false
-      guard agent == self.currentCodingAgent
+      guard context == self.currentCodexBarUsageContext
       else { return }
 
       if let status {
-        self.codexBarUsageHasStatus = true
-        self.codexBarUsageAgent = agent
+        self.lastCodexBarUsageFailureByContext[context] = nil
+        self.codexBarUsageContext = context
         self.ensureCodexBarUsageItem()
         self.codexBarUsageView?.update(with: status)
         self.showCodexBarUsageItem()
       }
-      else if !self.codexBarUsageHasStatus {
+      else {
+        self.lastCodexBarUsageFailureByContext[context] = Date()
+        self.clearCodexBarUsageState()
         self.hideCodexBarUsageItem()
       }
     }
+  }
+
+  private func clearCodexBarUsageState()
+  {
+    codexBarUsageContext = nil
+    codexBarUsageFetchContext = nil
   }
 
   private func showCodexBarUsageItem()
@@ -925,7 +1004,7 @@ extension TitleBarController
         infoString: ›"The current terminal session will be terminated and restarted with \(agent.displayName).",
         actionName: ›"Switch",
         parentWindow: window) { [weak self] in
-      let targetController = self?.activeWindowController
+      let targetController = self?.selectedWindowController
 
       if let config = targetController?.repoDocument?.repository?.config {
         config.codingAgent = agent
@@ -936,17 +1015,19 @@ extension TitleBarController
       if let item = self?.codingAgentToolbarItem {
         self?.updateCodingAgentItem(item)
       }
-      if agent.codexBarProviderID == nil {
-        self?.codexBarUsageHasStatus = false
-        self?.codexBarUsageAgent = nil
+      targetController?.restartTerminal(with: agent)
+      if let targetController {
+        self?.refreshCodexBarUsageItem(for: targetController, force: true)
+      }
+      else if agent.codexBarProviderID == nil {
+        self?.clearCodexBarUsageState()
         self?.hideCodexBarUsageItem()
       }
-      self?.refreshCodexBarUsageItem()
-      targetController?.restartTerminal(with: agent)
     }
   }
 
   private static let codexBarUsageRefreshInterval: TimeInterval = 5 * 60
+  private static let codexBarUsageFailureRetryInterval: TimeInterval = 30 * 60
 }
 
 extension TitleBarController: NSMenuItemValidation
