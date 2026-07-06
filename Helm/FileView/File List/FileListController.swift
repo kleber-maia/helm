@@ -151,31 +151,26 @@ class FileListController: NSViewController, RepositoryWindowViewController
   @IBAction
   func revert(_ sender: Any)
   {
-    let changes = targetChanges(sender: sender)
-    
-    switch changes.count {
-      case 0:
-        break
-      case 1:
-        let change = changes.first!
-        
-        NSAlert.confirm(message: .confirmRevert(change.path.lastPathComponent),
-                        actionName: .revert, isDestructive: true,
-                        parentWindow: view.window!) {
-          self.performFileMutation {
-            try self.repository.revert(file: change.gitPath)
-          }
+    // Expand any selected folders into the file changes in their sub-tree
+    // so we revert each file individually — git can't revert a directory.
+    let nodes = targetNodes(sender: sender)
+    let changes = nodes.flatMap { $0.leafChanges }
+
+    guard !changes.isEmpty,
+          let window = view.window
+    else { return }
+
+    let message: UIString = nodes.count == 1
+        ? .confirmRevert(nodes[0].value.path.lastPathComponent)
+        : .confirmRevertMultiple
+
+    NSAlert.confirm(message: message, actionName: .revert,
+                    isDestructive: true, parentWindow: window) {
+      self.performFileMutation {
+        for change in changes {
+          try self.repository.revert(file: change.gitPath)
         }
-      default:
-        NSAlert.confirm(message: .confirmRevertMultiple,
-                        actionName: .revert, isDestructive: true,
-                        parentWindow: view.window!) {
-          self.performFileMutation {
-            for change in changes {
-              try self.repository.revert(file: change.gitPath)
-            }
-          }
-        }
+      }
     }
   }
 
@@ -242,8 +237,22 @@ class FileListController: NSViewController, RepositoryWindowViewController
     let changes = targetChanges(sender: sender)
     let urls = changes.compactMap { repository.fileURL($0.gitPath) }
                 .filter { FileManager.default.fileExists(atPath: $0.path) }
-    
+
     NSWorkspace.shared.activateFileViewerSelecting(urls)
+  }
+
+  @IBAction
+  func copyFileName(_ sender: Any)
+  {
+    let names = targetChanges(sender: sender)
+                  .map { $0.path.lastPathComponent }
+
+    guard !names.isEmpty
+    else { return }
+    let pasteboard = NSPasteboard.general
+
+    pasteboard.clearContents()
+    pasteboard.setString(names.joined(separator: "\n"), forType: .string)
   }
   
   /// Subclasses may want to do something when this happens.
@@ -301,6 +310,33 @@ class FileListController: NSViewController, RepositoryWindowViewController
     }
   }
 
+  /// The outline view nodes that are the target of the current action.
+  /// Mirrors `targetChanges(sender:)` but keeps folder nodes intact so
+  /// callers can walk their whole sub-tree.
+  func targetNodes(sender: Any? = nil) -> [FileChangeNode]
+  {
+    if let button = sender as? NSButton,
+       let rowNode = node(atRow: outlineView.row(for: button)) {
+      return [rowNode]
+    }
+
+    if let clickedRow = outlineView.contextMenuRow,
+       !outlineView.selectedRowIndexes.contains(clickedRow),
+       let clicked = node(atRow: clickedRow) {
+      return [clicked]
+    }
+
+    return outlineView.selectedRowIndexes.compactMap { node(atRow: $0) }
+  }
+
+  private func node(atRow row: Int) -> FileChangeNode?
+  {
+    guard row >= 0, row < outlineView.numberOfRows
+    else { return nil }
+
+    return outlineView.item(atRow: row) as? FileChangeNode
+  }
+
   func addToolbarButton(image: NSImage,
                         toolTip: UIString,
                         target: Any? = nil,
@@ -340,7 +376,8 @@ extension FileListController: NSUserInterfaceValidations
   {
     switch item.action {
 
-      case #selector(showInFinder(_:)):
+      case #selector(showInFinder(_:)),
+           #selector(copyFileName(_:)):
         return selectedChange != nil
 
       case #selector(open(_:)):
@@ -468,6 +505,16 @@ extension FileListController: NSOutlineViewDelegate
     else {
       return NSColor.textColor
     }
+  }
+}
+
+private extension FileChangeNode
+{
+  /// Every leaf (file) change at or under this node: a file node yields
+  /// its own change; a folder yields all file changes in its sub-tree.
+  var leafChanges: [FileChange]
+  {
+    isLeaf ? [value] : children.flatMap { $0.leafChanges }
   }
 }
 

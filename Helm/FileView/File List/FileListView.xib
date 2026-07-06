@@ -363,6 +363,13 @@
                         <action selector="showInFinder:" target="-2" id="jNo-Mq-rgj"/>
                     </connections>
                 </menuItem>
+                <menuItem isSeparatorItem="YES" id="qNa-fL-Cs1"/>
+                <menuItem title="Copy File Name" secondaryImage="doc.on.doc" catalog="system" id="cPy-Nm-St1">
+                    <modifierMask key="keyEquivalentModifierMask"/>
+                    <connections>
+                        <action selector="copyFileName:" target="-2" id="cPy-Ac-St1"/>
+                    </connections>
+                </menuItem>
             </items>
             <point key="canvasLocation" x="1803" y="418"/>
         </menu>
@@ -382,6 +389,13 @@
                     <modifierMask key="keyEquivalentModifierMask"/>
                     <connections>
                         <action selector="showInFinder:" target="-2" id="xaZ-hT-iK3"/>
+                    </connections>
+                </menuItem>
+                <menuItem isSeparatorItem="YES" id="qNa-fL-Cs2"/>
+                <menuItem title="Copy File Name" secondaryImage="doc.on.doc" catalog="system" id="cPy-Nm-St2">
+                    <modifierMask key="keyEquivalentModifierMask"/>
+                    <connections>
+                        <action selector="copyFileName:" target="-2" id="cPy-Ac-St2"/>
                     </connections>
                 </menuItem>
             </items>

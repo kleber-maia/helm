@@ -30,7 +30,8 @@ extension CommitFileListController
 
     switch item.action {
       case #selector(open(_:)),
-           #selector(showInFinder(_:)):
+           #selector(showInFinder(_:)),
+           #selector(copyFileName(_:)):
         return super.validateUserInterfaceItem(item)
       default:
         menuItem?.isHidden = true
