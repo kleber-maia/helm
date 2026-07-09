@@ -73,14 +73,14 @@ struct RecursiveDisclosureGroup<Data, ID, TagValue, RowContent>: View
     for element in data {
       let itemID = element[keyPath: id]
       let sub = element[keyPath: children]
-      let hasChildren = sub != nil
+      let hasChildren = sub?.isEmpty == false
 
       result.append(FlatRow(element: element, id: itemID,
                             level: level,
                             hasChildren: hasChildren,
                             tagValue: tagForElement(element)))
 
-      if let sub, expandedItems.wrappedValue.contains(itemID) {
+      if hasChildren, let sub, expandedItems.wrappedValue.contains(itemID) {
         result.append(contentsOf:
             flattenedRows(data: sub, level: level + 1))
       }

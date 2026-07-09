@@ -122,6 +122,9 @@ final class SidebarCoordinator: ObservableObject
   /// Expanded nodes in the unified sidebar tree.
   @Published var expandedItems: Set<String> = []
 
+  /// Top space reserved for fullscreen system chrome over the sidebar.
+  @Published var topContentInset: CGFloat = 0
+
   /// Current annotated tag popover payload, if one is being shown.
   @Published var presentedTagInfo: TagInfoModel?
 

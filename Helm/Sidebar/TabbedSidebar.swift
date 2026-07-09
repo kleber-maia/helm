@@ -29,6 +29,11 @@ struct TabbedSidebar<Brancher, Manager, Referencer, Stasher, Tagger, SubManager>
   var body: some View
   {
     VStack(spacing: 0) {
+      if coordinator.topContentInset > 0 {
+        Color.clear
+          .frame(height: coordinator.topContentInset)
+          .allowsHitTesting(false)
+      }
       List(selection: $listSelection) {
         RecursiveDisclosureGroup(model.items,
                                  expandedItems: effectiveExpandedItems,
@@ -114,7 +119,7 @@ struct TabbedSidebar<Brancher, Manager, Referencer, Stasher, Tagger, SubManager>
   {
     switch node.item {
       case .section(let section):
-        sectionRow(for: section)
+        sectionRow(for: section, path: node.path)
       case .staging:
         stagingRow()
       case .localBranch(let branch):
@@ -160,14 +165,21 @@ struct TabbedSidebar<Brancher, Manager, Referencer, Stasher, Tagger, SubManager>
   }
 
   @ViewBuilder
-  private func sectionRow(for section: SidebarTreeSection) -> some View
+  private func sectionRow(for section: SidebarTreeSection,
+                          path: String) -> some View
   {
     HStack(spacing: 4) {
-      Image(systemName: section.systemImage)
-        .frame(width: 16, alignment: .center)
-      Text(section.title.rawValue)
-        .axid(section.axid)
-      Spacer()
+      HStack(spacing: 4) {
+        Image(systemName: section.systemImage)
+          .frame(width: 16, alignment: .center)
+        Text(section.title.rawValue)
+          .axid(section.axid)
+        Spacer()
+      }
+        .contentShape(Rectangle())
+        .onTapGesture {
+          toggleExpandedItem(path)
+        }
       SidebarActionButton {
         sectionActionMenu(for: section)
       }
@@ -178,11 +190,39 @@ struct TabbedSidebar<Brancher, Manager, Referencer, Stasher, Tagger, SubManager>
       .listRowSeparator(.hidden)
   }
 
+  private func toggleExpandedItem(_ path: String)
+  {
+    var expanded = effectiveExpandedItems.wrappedValue
+
+    if expanded.contains(path) {
+      expanded.remove(path)
+    }
+    else {
+      expanded.insert(path)
+    }
+
+    effectiveExpandedItems.wrappedValue = expanded
+  }
+
   @ViewBuilder
   private func stagingRow() -> some View
   {
     StagingRow(countModel: model.workspaceCountModel,
                isSelected: listSelection == .staging)
+      .simultaneousGesture(TapGesture().onEnded {
+        selectOrReselect(.staging)
+      })
+  }
+
+  private func selectOrReselect(_ selection: SidebarTreeSelection)
+  {
+    listSelection = selection
+    if coordinator.selection == selection {
+      coordinator.reselect(selection)
+    }
+    else {
+      coordinator.selection = selection
+    }
   }
 
   @ViewBuilder

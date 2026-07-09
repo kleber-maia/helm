@@ -9,6 +9,7 @@ final class TabbedSidebarController: NSHostingController<AnyView>
 {
   weak var controller: HelmWindowController?
   private var sinks: [AnyCancellable] = []
+  private var notificationObservers: [NSObjectProtocol] = []
 
   /// Local mouse monitor used to detect clicks on the already-selected sidebar
   /// row, which SwiftUI's `List` otherwise ignores.
@@ -83,12 +84,23 @@ final class TabbedSidebarController: NSHostingController<AnyView>
   {
     super.viewDidAppear()
     installReselectMonitorIfNeeded()
+    installWindowObserversIfNeeded()
+    updateTopContentInset()
+  }
+
+  override func viewDidLayout()
+  {
+    super.viewDidLayout()
+    updateTopContentInset()
   }
 
   deinit
   {
     if let reselectMonitor {
       NSEvent.removeMonitor(reselectMonitor)
+    }
+    for observer in notificationObservers {
+      NotificationCenter.default.removeObserver(observer)
     }
   }
 
@@ -145,6 +157,59 @@ final class TabbedSidebarController: NSHostingController<AnyView>
 
     sidebarTableView = found
     return found
+  }
+
+  private func installWindowObserversIfNeeded()
+  {
+    guard notificationObservers.isEmpty,
+          let window = view.window
+    else { return }
+
+    let names: [Notification.Name] = [
+      NSWindow.didEnterFullScreenNotification,
+      NSWindow.didExitFullScreenNotification,
+      NSWindow.didResizeNotification,
+    ]
+
+    notificationObservers = names.map { name in
+      NotificationCenter.default.addObserver(forName: name,
+                                             object: window,
+                                             queue: .main) {
+        [weak self] _ in
+        MainActor.assumeIsolated {
+          self?.updateTopContentInset()
+        }
+      }
+    }
+  }
+
+  private func updateTopContentInset()
+  {
+    guard let window = view.window,
+          window.styleMask.contains(.fullScreen)
+    else {
+      setTopContentInset(0)
+      return
+    }
+
+    let inset = fullScreenTopSystemOverlap(for: window)
+
+    setTopContentInset(inset)
+  }
+
+  private func setTopContentInset(_ inset: CGFloat)
+  {
+    guard coordinator.topContentInset != inset
+    else { return }
+
+    coordinator.topContentInset = inset
+  }
+
+  private func fullScreenTopSystemOverlap(for window: NSWindow) -> CGFloat
+  {
+    let layoutRect = view.convert(window.contentLayoutRect, from: nil)
+
+    return max(0, view.bounds.maxY - layoutRect.maxY)
   }
 
   /// Requests that cached sidebar models refresh their visible data.
