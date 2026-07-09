@@ -192,9 +192,7 @@ final class TabbedSidebarController: NSHostingController<AnyView>
       return
     }
 
-    let inset = fullScreenTopSystemOverlap(for: window)
-
-    setTopContentInset(inset)
+    setTopContentInset(max(0, view.safeAreaInsets.top))
   }
 
   private func setTopContentInset(_ inset: CGFloat)
@@ -203,13 +201,6 @@ final class TabbedSidebarController: NSHostingController<AnyView>
     else { return }
 
     coordinator.topContentInset = inset
-  }
-
-  private func fullScreenTopSystemOverlap(for window: NSWindow) -> CGFloat
-  {
-    let layoutRect = view.convert(window.contentLayoutRect, from: nil)
-
-    return max(0, view.bounds.maxY - layoutRect.maxY)
   }
 
   /// Requests that cached sidebar models refresh their visible data.
