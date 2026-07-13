@@ -24,7 +24,7 @@ enum PreferenceKeys
                                               "xcode-dark")
   static let codingAgent = PreferenceKey("codingAgent", CodingAgent.terminal)
   static let codexBarUsageEnabled = PreferenceKey("codexBarUsageEnabled",
-                                                  false)
+                                                  true)
 }
 
 struct PreferenceKey<T>
