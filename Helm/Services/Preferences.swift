@@ -23,6 +23,8 @@ enum PreferenceKeys
   static let editorDarkTheme = PreferenceKey("editorDarkTheme",
                                               "xcode-dark")
   static let codingAgent = PreferenceKey("codingAgent", CodingAgent.terminal)
+  static let codexBarUsageEnabled = PreferenceKey("codexBarUsageEnabled",
+                                                  false)
 }
 
 struct PreferenceKey<T>
@@ -185,6 +187,11 @@ extension UserDefaults
   {
     get { self[PreferenceKeys.codingAgent] }
     set { self[PreferenceKeys.codingAgent] = newValue }
+  }
+  var codexBarUsageEnabled: Bool
+  {
+    get { self[PreferenceKeys.codexBarUsageEnabled] }
+    set { self[PreferenceKeys.codexBarUsageEnabled] = newValue }
   }
 
 }

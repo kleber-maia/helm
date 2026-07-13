@@ -654,6 +654,11 @@ extension TitleBarController
      ?? window?.windowController) as? HelmWindowController
   }
 
+  private var codexBarUsageEnabled: Bool
+  {
+    UserDefaults.helm.codexBarUsageEnabled
+  }
+
   private var currentCodingAgent: CodingAgent
   {
     codingAgent(for: selectedWindowController)
@@ -732,22 +737,45 @@ extension TitleBarController
     if let item = codingAgentToolbarItem {
       updateCodingAgentItem(item)
     }
-    startCodexBarUsageUpdates()
+    if codexBarUsageEnabled {
+      startCodexBarUsageUpdates()
+    }
+    else {
+      stopCodexBarUsageUpdates()
+    }
   }
 
   func refreshCodexBarUsageAfterRepositoryRefresh(
     for controller: HelmWindowController)
   {
+    guard codexBarUsageEnabled
+    else {
+      stopCodexBarUsageUpdates()
+      return
+    }
+
     refreshCodexBarUsageItem(for: controller)
   }
 
   func refreshCodexBarUsageFromToolbar(for controller: HelmWindowController)
   {
+    guard codexBarUsageEnabled
+    else {
+      stopCodexBarUsageUpdates()
+      return
+    }
+
     refreshCodexBarUsageItem(for: controller, force: true)
   }
 
   private func startCodexBarUsageUpdates()
   {
+    guard codexBarUsageEnabled
+    else {
+      stopCodexBarUsageUpdates()
+      return
+    }
+
     refreshCodexBarUsageItem()
     codexBarUsageRefreshTimer?.invalidate()
     codexBarUsageRefreshTimer = Timer.scheduledTimer(
@@ -758,8 +786,22 @@ extension TitleBarController
     }
   }
 
+  private func stopCodexBarUsageUpdates()
+  {
+    codexBarUsageRefreshTimer?.invalidate()
+    codexBarUsageRefreshTimer = nil
+    clearCodexBarUsageState()
+    hideCodexBarUsageItem()
+  }
+
   private func refreshCodexBarUsageItem(force: Bool = false)
   {
+    guard codexBarUsageEnabled
+    else {
+      stopCodexBarUsageUpdates()
+      return
+    }
+
     guard let context = currentCodexBarUsageContext
     else {
       clearCodexBarUsageState()
@@ -773,6 +815,12 @@ extension TitleBarController
   private func refreshCodexBarUsageItem(for controller: HelmWindowController,
                                         force: Bool = false)
   {
+    guard codexBarUsageEnabled
+    else {
+      stopCodexBarUsageUpdates()
+      return
+    }
+
     guard controller.titleBarController === self,
           controller.window?.isMainWindow == true,
           selectedWindowController === controller
@@ -831,7 +879,8 @@ extension TitleBarController
       else { return }
 
       self.codexBarUsageFetchInProgress = false
-      guard context == self.currentCodexBarUsageContext
+      guard self.codexBarUsageEnabled,
+            context == self.currentCodexBarUsageContext
       else { return }
 
       if let status {

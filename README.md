@@ -21,17 +21,21 @@ performance and a contributor-friendly codebase.
 - Manage branches, remotes, tags, stashes, and submodules from the sidebar.
 - Run common repository operations through native macOS dialogs.
 - Launch coding agents from the embedded terminal with repository context.
-- Show CodexBar-backed session and weekly usage for configured coding agents
-  directly in the toolbar.
+- Launch configured coding agents from the toolbar. CodexBar-backed usage can
+  be enabled explicitly, but is off by default to avoid provider credential
+  prompts from background refreshes.
 - Define custom commands for repeatable project-specific workflows.
 - Configure editor themes, diff settings, and custom repository actions.
 
 ## Coding Agent Usage
 
-Helm integrates with CodexBar to show configured coding-agent usage in the
-toolbar. When the selected terminal agent also exists in CodexBar, Helm displays
-session and weekly utilization, reset times, and pace-aware status without
-leaving the Git workflow.
+Helm can integrate with CodexBar to show configured coding-agent usage in the
+toolbar. This meter is disabled by default so Helm does not launch CodexBar in
+the background or trigger provider credential prompts. To opt in:
+
+```bash
+defaults write group.soft.HelmIDE codexBarUsageEnabled -bool YES
+```
 
 ## Project Status
 

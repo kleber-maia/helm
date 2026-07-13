@@ -14,5 +14,7 @@
 	<integer>11</integer>
 	<key>tabWidth</key>
 	<integer>4</integer>
+	<key>codexBarUsageEnabled</key>
+	<false/>
 </dict>
 </plist>
