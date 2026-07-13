@@ -64,15 +64,9 @@ enum CodingAgent: String, CaseIterable, Sendable
 
   var codexBarSource: String?
   {
-    switch self {
-      case .codex, .claude:
-        return "oauth"
-      case .kimi:
-        // Kimi authenticates with an API key; let CodexBar auto-resolve
-        // the source (which resolves to its API source).
-        return nil
-      case .terminal:
-        return nil
-    }
+    // Omit `--source` so CodexBar can use its own provider settings/defaults.
+    // Forcing CLI/OAuth sources can make CodexBar read credentials such as
+    // "Claude Code-credentials" and trigger repeated macOS keychain prompts.
+    return nil
   }
 }
