@@ -656,7 +656,9 @@ extension TitleBarController
 
   private var codexBarUsageEnabled: Bool
   {
-    UserDefaults.helm.codexBarUsageEnabled
+    // Disabled until CodexBar CLI usage refresh is reliable enough to run
+    // without repeated keychain prompts or missing toolbar data.
+    false
   }
 
   private var currentCodingAgent: CodingAgent
