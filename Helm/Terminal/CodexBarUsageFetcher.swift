@@ -4,12 +4,13 @@ struct CodexBarUsageStatus
 {
   let providerName: String
   let source: String?
-  let session: CodexBarUsageWindow
-  let weekly: CodexBarUsageWindow
+  let session: CodexBarUsageWindow?
+  let weekly: CodexBarUsageWindow?
 
   func withWeeklyPace(_ pace: Bool?) -> CodexBarUsageStatus
   {
-    guard let pace
+    guard let pace,
+          let weekly
     else { return self }
 
     return CodexBarUsageStatus(providerName: providerName,
@@ -95,10 +96,15 @@ final class CodexBarUsageFetcher
     else { return cachedStatuses[cacheKey(providerID: providerID,
                                           source: source)] }
 
-    let weeklyPace = status.weekly.remainingQuotaEnoughUntilReset == nil &&
-        providerID != Self.claudeProviderID
-        ? fetchWeeklyPace(providerID: providerID, source: source)
-        : nil
+    let weeklyPace: Bool?
+    if let weekly = status.weekly,
+       weekly.remainingQuotaEnoughUntilReset == nil,
+       providerID != Self.claudeProviderID {
+      weeklyPace = fetchWeeklyPace(providerID: providerID, source: source)
+    }
+    else {
+      weeklyPace = nil
+    }
     let resolvedStatus = status.withWeeklyPace(weeklyPace)
 
     cachedStatuses[cacheKey(providerID: providerID, source: source)] =
@@ -246,6 +252,9 @@ private extension CodexBarUsageFetcher
                      providerID: String,
                      providerName: String) -> CodexBarUsageStatus?
   {
+    guard let data = jsonPayloadData(from: data)
+    else { return nil }
+
     let decoder = JSONDecoder()
     let payloads: [Payload]
 
@@ -261,15 +270,63 @@ private extension CodexBarUsageFetcher
 
     let payload = payloads.first { $0.provider == providerID } ?? payloads.first
 
-    guard let usage = payload?.usage,
-          let session = usage.sessionWindow,
-          let weekly = usage.weeklyWindow
+    guard let payload,
+          let usage = payload.usage
+    else { return nil }
+
+    let session = usage.sessionWindow.map {
+      payload.statusWindow(for: $0, usage: usage)
+    }
+    let weekly = usage.weeklyWindow.map {
+      payload.statusWindow(for: $0, usage: usage)
+    }
+
+    guard session != nil || weekly != nil
     else { return nil }
 
     return CodexBarUsageStatus(providerName: providerName,
-                               source: payload?.source,
-                               session: session.statusWindow,
-                               weekly: weekly.statusWindow)
+                               source: payload.source,
+                               session: session,
+                               weekly: weekly)
+  }
+
+  static func jsonPayloadData(from data: Data) -> Data?
+  {
+    guard let text = String(data: data, encoding: .utf8)
+    else { return data }
+
+    let lines = text.components(separatedBy: .newlines)
+
+    for index in lines.indices {
+      let candidate = lines[index...]
+        .joined(separator: "\n")
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+
+      guard looksLikeJSONPayload(candidate)
+      else { continue }
+
+      return candidate.data(using: .utf8)
+    }
+
+    return nil
+  }
+
+  static func looksLikeJSONPayload(_ text: String) -> Bool
+  {
+    guard let first = text.first
+    else { return false }
+
+    if first == "{" {
+      return true
+    }
+    if first == "[" {
+      let remainder = text
+        .dropFirst()
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+
+      return remainder.first == "{" || remainder.first == "]"
+    }
+    return false
   }
 
   struct Payload: Decodable
@@ -277,6 +334,34 @@ private extension CodexBarUsageFetcher
     let provider: String
     let source: String?
     let usage: Usage?
+    let pace: PaceWindows?
+
+    func statusWindow(for rateWindow: RateWindow,
+                      usage: Usage) -> CodexBarUsageWindow
+    {
+      guard let pace = pace?.pace(for: rateWindow, usage: usage)
+      else { return rateWindow.statusWindow }
+
+      return rateWindow.statusWindow.withPace(pace)
+    }
+  }
+
+  struct PaceWindows: Decodable
+  {
+    let primary: RateWindow.Pace?
+    let secondary: RateWindow.Pace?
+
+    func pace(for rateWindow: RateWindow,
+              usage: Usage) -> Bool?
+    {
+      if usage.primary == rateWindow {
+        return primary?.remainingQuotaEnoughUntilReset
+      }
+      if usage.secondary == rateWindow {
+        return secondary?.remainingQuotaEnoughUntilReset
+      }
+      return nil
+    }
   }
 
   struct Usage: Decodable
@@ -334,7 +419,7 @@ private extension CodexBarUsageFetcher
     private static let weekMinutes = 7 * 24 * 60
   }
 
-  struct RateWindow: Decodable
+  struct RateWindow: Decodable, Equatable
   {
     let usedPercent: Double
     let windowMinutes: Int?

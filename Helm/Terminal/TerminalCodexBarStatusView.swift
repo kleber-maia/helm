@@ -160,8 +160,16 @@ private final class TerminalUsageMeterView: NSView
     configure()
   }
 
-  func update(with window: CodexBarUsageWindow)
+  func update(with window: CodexBarUsageWindow?)
   {
+    guard let window
+    else {
+      usageWindow = nil
+      isHidden = true
+      return
+    }
+
+    isHidden = false
     self.usageWindow = window
 
     let percent = max(0, min(100, window.usedPercent))
