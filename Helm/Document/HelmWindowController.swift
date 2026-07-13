@@ -192,7 +192,6 @@ final class HelmWindowController: NSWindowController,
 
     historyController.reload()
     tabbedSidebarController?.refresh()
-    titleBarController.refreshCodexBarUsageAfterRepositoryRefresh(for: self)
   }
 
   func deferLocalRefreshUntilQueueIdle()

@@ -199,21 +199,7 @@ class TitleBarController: NSObject
         }
     })
 
-    let repositoryRefreshPublishers: [AnyPublisher<Void, Never>] = [
-      controller.configPublisher,
-      controller.headPublisher,
-      controller.indexPublisher,
-      controller.refsPublisher,
-      controller.stashPublisher,
-      controller.workspacePublisher.map { _ in () }.eraseToAnyPublisher(),
-    ]
-
-    sinks.append(Publishers.MergeMany(repositoryRefreshPublishers)
-      .debounce(for: .seconds(2), scheduler: DispatchQueue.main)
-      .sink {
-        [weak self] _ in
-        self?.refreshCodexBarUsageItem()
-      })
+    stopCodexBarUsageUpdates()
   }
 
   @IBAction
@@ -611,11 +597,11 @@ extension TitleBarController: NSToolbarDelegate
 
       case .codingAgent:
         codingAgentToolbarItem = item as? NSMenuToolbarItem
-        startCodexBarUsageUpdates()
+        stopCodexBarUsageUpdates()
 
       case .codingAgentUsageGroup:
         codingAgentUsageToolbarGroup = item as? NSToolbarItemGroup
-        startCodexBarUsageUpdates()
+        stopCodexBarUsageUpdates()
 
       case .codexBarUsage:
         codexBarUsageToolbarItem = item
@@ -739,53 +725,23 @@ extension TitleBarController
     if let item = codingAgentToolbarItem {
       updateCodingAgentItem(item)
     }
-    if codexBarUsageEnabled {
-      startCodexBarUsageUpdates()
-    }
-    else {
-      stopCodexBarUsageUpdates()
-    }
+    stopCodexBarUsageUpdates()
   }
 
   func refreshCodexBarUsageAfterRepositoryRefresh(
     for controller: HelmWindowController)
   {
-    guard codexBarUsageEnabled
-    else {
-      stopCodexBarUsageUpdates()
-      return
-    }
-
-    refreshCodexBarUsageItem(for: controller)
+    stopCodexBarUsageUpdates()
   }
 
   func refreshCodexBarUsageFromToolbar(for controller: HelmWindowController)
   {
-    guard codexBarUsageEnabled
-    else {
-      stopCodexBarUsageUpdates()
-      return
-    }
-
-    refreshCodexBarUsageItem(for: controller, force: true)
+    stopCodexBarUsageUpdates()
   }
 
   private func startCodexBarUsageUpdates()
   {
-    guard codexBarUsageEnabled
-    else {
-      stopCodexBarUsageUpdates()
-      return
-    }
-
-    refreshCodexBarUsageItem()
-    codexBarUsageRefreshTimer?.invalidate()
-    codexBarUsageRefreshTimer = Timer.scheduledTimer(
-        withTimeInterval: Self.codexBarUsageRefreshInterval,
-        repeats: true) {
-      [weak self] _ in
-      self?.refreshCodexBarUsageItem()
-    }
+    stopCodexBarUsageUpdates()
   }
 
   private func stopCodexBarUsageUpdates()
@@ -798,106 +754,19 @@ extension TitleBarController
 
   private func refreshCodexBarUsageItem(force: Bool = false)
   {
-    guard codexBarUsageEnabled
-    else {
-      stopCodexBarUsageUpdates()
-      return
-    }
-
-    guard let context = currentCodexBarUsageContext
-    else {
-      clearCodexBarUsageState()
-      hideCodexBarUsageItem()
-      return
-    }
-
-    refreshCodexBarUsageItem(for: context, force: force)
+    stopCodexBarUsageUpdates()
   }
 
   private func refreshCodexBarUsageItem(for controller: HelmWindowController,
                                         force: Bool = false)
   {
-    guard codexBarUsageEnabled
-    else {
-      stopCodexBarUsageUpdates()
-      return
-    }
-
-    guard controller.titleBarController === self,
-          controller.window?.isMainWindow == true,
-          selectedWindowController === controller
-    else { return }
-
-    let agent = codingAgent(for: controller)
-    guard agent.codexBarProviderID != nil
-    else {
-      clearCodexBarUsageState()
-      hideCodexBarUsageItem()
-      return
-    }
-
-    refreshCodexBarUsageItem(
-      for: CodexBarUsageContext(controller: controller, agent: agent),
-      force: force
-    )
+    stopCodexBarUsageUpdates()
   }
 
   private func refreshCodexBarUsageItem(for context: CodexBarUsageContext,
                                         force: Bool = false)
   {
-    guard !codexBarUsageFetchInProgress
-    else { return }
-
-    if codexBarUsageContext != nil,
-       codexBarUsageContext != context {
-      clearCodexBarUsageState()
-      hideCodexBarUsageItem()
-    }
-
-    // A user-driven agent switch must fetch right away. Failed fetches still
-    // update the attempted context so repository refreshes do not bypass the
-    // throttle and repeatedly trigger provider credential prompts.
-    let contextChanged = context != codexBarUsageFetchContext
-    let now = Date()
-    let lastRefresh = lastCodexBarUsageRefreshByContext[context] ??
-        .distantPast
-    let lastFailure = lastCodexBarUsageFailureByContext[context] ??
-        .distantPast
-
-    guard force ||
-          contextChanged ||
-          (now.timeIntervalSince(lastRefresh) >=
-             Self.codexBarUsageRefreshInterval &&
-           now.timeIntervalSince(lastFailure) >=
-             Self.codexBarUsageFailureRetryInterval)
-    else { return }
-
-    codexBarUsageFetchContext = context
-    lastCodexBarUsageRefreshByContext[context] = now
-    codexBarUsageFetchInProgress = true
-    CodexBarUsageFetcher.shared.fetch(for: context.agent) {
-      [weak self] status in
-      guard let self
-      else { return }
-
-      self.codexBarUsageFetchInProgress = false
-      guard self.codexBarUsageEnabled,
-            context == self.currentCodexBarUsageContext
-      else { return }
-
-      if let status {
-        self.lastCodexBarUsageFailureByContext[context] = nil
-        self.codexBarUsageContext = context
-        self.ensureCodexBarUsageItem()
-        self.codexBarUsageView?.update(with: status)
-        self.showCodexBarUsageItem()
-      }
-      else {
-        self.lastCodexBarUsageFailureByContext[context] = Date()
-        self.clearCodexBarUsageState()
-        self.hideCodexBarUsageItem()
-      }
-    }
+    stopCodexBarUsageUpdates()
   }
 
   private func clearCodexBarUsageState()
@@ -1067,13 +936,7 @@ extension TitleBarController
         self?.updateCodingAgentItem(item)
       }
       targetController?.restartTerminal(with: agent)
-      if let targetController {
-        self?.refreshCodexBarUsageItem(for: targetController, force: true)
-      }
-      else if agent.codexBarProviderID == nil {
-        self?.clearCodexBarUsageState()
-        self?.hideCodexBarUsageItem()
-      }
+      self?.stopCodexBarUsageUpdates()
     }
   }
 
