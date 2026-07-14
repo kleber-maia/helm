@@ -508,9 +508,18 @@ extension TabbedSidebarController: SidebarCoordinatorDelegate
 
   func popStash(_ stashID: GitOID)
   {
-    runStashAction(stashID,
-                   onSuccess: notifyIndexChanged) { index in
-      try self.controller?.repository.popStash(index: UInt(index))
+    guard let window = controller?.window
+    else { return }
+
+    NSAlert.confirm(message: .confirmPopSelected,
+                    actionName: .pop,
+                    parentWindow: window) { [weak self] in
+      guard let self else { return }
+
+      runStashAction(stashID,
+                     onSuccess: notifyIndexChanged) { index in
+        try self.controller?.repository.popStash(index: UInt(index))
+      }
     }
   }
 
@@ -524,8 +533,18 @@ extension TabbedSidebarController: SidebarCoordinatorDelegate
 
   func dropStash(_ stashID: GitOID)
   {
-    runStashAction(stashID) { index in
-      try self.controller?.repository.dropStash(index: UInt(index))
+    guard let window = controller?.window
+    else { return }
+
+    NSAlert.confirm(message: .confirmStashDrop,
+                    actionName: .drop,
+                    isDestructive: true,
+                    parentWindow: window) { [weak self] in
+      guard let self else { return }
+
+      runStashAction(stashID) { index in
+        try self.controller?.repository.dropStash(index: UInt(index))
+      }
     }
   }
 

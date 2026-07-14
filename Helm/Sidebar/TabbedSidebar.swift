@@ -421,25 +421,27 @@ struct TabbedSidebar<Brancher, Manager, Referencer, Stasher, Tagger, SubManager>
 
     switch listSelection {
       case .stash(let stashID):
-        Button(.pop, systemImage: "arrow.up.square.fill") {
-          coordinator.popStash(stashID)
-        }
         Button(.apply, systemImage: "arrow.up.square") {
           coordinator.applyStash(stashID)
+        }
+        Divider()
+        Button(.pop, systemImage: "arrow.up.square.fill") {
+          coordinator.popStash(stashID)
         }
         Button(.drop, systemImage: "trash") {
           coordinator.dropStash(stashID)
         }
       default:
-        Button("Pop top stash", systemImage: "arrow.up.square.fill") {
-          if let topStash {
-            coordinator.popStash(topStash)
-          }
-        }
-          .disabled(topStash == nil)
         Button("Apply top stash", systemImage: "arrow.up.square") {
           if let topStash {
             coordinator.applyStash(topStash)
+          }
+        }
+          .disabled(topStash == nil)
+        Divider()
+        Button("Pop top stash", systemImage: "arrow.up.square.fill") {
+          if let topStash {
+            coordinator.popStash(topStash)
           }
         }
           .disabled(topStash == nil)
@@ -560,11 +562,12 @@ struct TabbedSidebar<Brancher, Manager, Referencer, Stasher, Tagger, SubManager>
   @ViewBuilder
   private func stashContextMenu(for stashID: GitOID) -> some View
   {
-    Button(.pop, systemImage: "arrow.up.square.fill") {
-      coordinator.popStash(stashID)
-    }
     Button(.apply, systemImage: "arrow.up.square") {
       coordinator.applyStash(stashID)
+    }
+    Divider()
+    Button(.pop, systemImage: "arrow.up.square.fill") {
+      coordinator.popStash(stashID)
     }
     Button(.drop, systemImage: "trash") {
       coordinator.dropStash(stashID)

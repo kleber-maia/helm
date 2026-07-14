@@ -157,8 +157,9 @@ struct StashList<Stasher: Stashing>: View
   @ViewBuilder
   func stashContextMenu(for index: Int) -> some View
   {
+    Button(.apply, systemImage: "arrow.up.square") { perform(.apply(index)) }
+    Divider()
     Button(.pop, systemImage: "arrow.up.square.fill") { confirm(.pop(index)) }
-    Button(.apply, systemImage: "arrow.up.square") { confirm(.apply(index)) }
     Button(.drop, systemImage: "trash") { confirm(.drop(index)) }
   }
 }
