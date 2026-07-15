@@ -24,9 +24,6 @@ enum EditorMode
 struct ComputedDiff: @unchecked Sendable
 {
   let instruction: RenderInstruction
-  /// Whether `diffMaker`/`patch` should replace the controller's stored
-  /// values (true only for diff-mode results).
-  let updatesPatch: Bool
   let diffMaker: PatchMaker?
   let patch: (any Patch)?
 }
@@ -86,6 +83,9 @@ final class FileDiffController: WebViewController,
 
   /// Stored so we can re-render after mode switch.
   private var lastSelection: [FileSelection] = []
+  /// Identifies the newest requested preview. Repository work is asynchronous;
+  /// results from older generations must never replace a newer selection.
+  private var renderGeneration: UInt64 = 0
 
   override func wrappingWidthAdjustment() -> Int
   {
@@ -181,7 +181,7 @@ final class FileDiffController: WebViewController,
         return ComputedDiff(
             instruction: .text(content: text, ext: ext, added: added,
                                deleted: deleted, modified: modified),
-            updatesPatch: false, diffMaker: nil, patch: nil)
+            diffMaker: nil, patch: nil)
     }
   }
 
@@ -195,16 +195,16 @@ final class FileDiffController: WebViewController,
     guard let diffResult = diffResult
     else {
       return ComputedDiff(instruction: .noChangesNotice,
-                          updatesPatch: false, diffMaker: nil, patch: nil)
+                          diffMaker: nil, patch: nil)
     }
 
     switch diffResult {
       case .noDifference:
         return ComputedDiff(instruction: .noChangesNotice,
-                            updatesPatch: false, diffMaker: nil, patch: nil)
+                            diffMaker: nil, patch: nil)
       case .binary:
         return ComputedDiff(instruction: .notice(.binaryFile),
-                            updatesPatch: false, diffMaker: nil, patch: nil)
+                            diffMaker: nil, patch: nil)
       case .diff(let diffMaker):
         diffMaker.whitespace = whitespace
         diffMaker.contextLines = contextLines
@@ -212,13 +212,11 @@ final class FileDiffController: WebViewController,
         guard let patch = diffMaker.makePatch()
         else {
           return ComputedDiff(instruction: .keepCurrent,
-                              updatesPatch: true,
                               diffMaker: diffMaker, patch: nil)
         }
         guard patch.hunkCount > 0
         else {
           return ComputedDiff(instruction: .noChangesNotice,
-                              updatesPatch: true,
                               diffMaker: diffMaker, patch: patch)
         }
 
@@ -230,7 +228,7 @@ final class FileDiffController: WebViewController,
         return ComputedDiff(
             instruction: .diff(json: json, ext: ext,
                                staging: stagingTypeString(stagingType)),
-            updatesPatch: true, diffMaker: diffMaker, patch: patch)
+            diffMaker: diffMaker, patch: patch)
     }
   }
 
@@ -285,34 +283,59 @@ final class FileDiffController: WebViewController,
   /// Applies a computed result on the main thread: stores the patch (for
   /// hunk staging) and renders via the web view.
   @MainActor
-  private func apply(_ result: ComputedDiff, stagingType: StagingType)
+  private func apply(_ result: ComputedDiff,
+                     stagingType: StagingType,
+                     generation: UInt64)
   {
+    guard generation == renderGeneration
+    else { return }
+
     self.stagingType = stagingType
-    if result.updatesPatch {
-      self.diffMaker = result.diffMaker
-      self.patch = result.patch
-    }
 
     switch result.instruction {
       case .clear:
-        clear()
+        renderClear(generation: generation)
       case .keepCurrent:
-        break
+        // A failed patch must not leave a previous file's actionable hunks
+        // visible for the new selection.
+        renderClear(generation: generation)
       case .noChangesNotice:
-        loadNoChangesNotice()
+        loadNoChangesNotice(generation: generation)
       case .notice(let text):
-        loadNotice(text)
+        loadNotice(text, generation: generation)
       case .diff(let json, let ext, let staging):
         ensureEditorLoaded()
         callJS("await HelmEditor.loadDiff(hunks, staging, ext)",
-               arguments: ["hunks": json, "staging": staging, "ext": ext])
-        isLoaded = true
+               arguments: ["hunks": json, "staging": staging, "ext": ext],
+               when: generationCheck(generation)) {
+          [weak self] succeeded in
+          guard let self,
+                succeeded,
+                generation == self.renderGeneration
+          else { return }
+
+          self.diffMaker = result.diffMaker
+          self.patch = result.patch
+          self.stagingType = stagingType
+          self.isLoaded = true
+        }
       case .text(let content, let ext, let added, let deleted,
                  let modified):
         ensureEditorLoaded()
+        let completion: (Bool) -> Void = {
+          [weak self] succeeded in
+          guard let self,
+                succeeded,
+                generation == self.renderGeneration
+          else { return }
+
+          self.isLoaded = true
+        }
         if added.isEmpty && deleted.isEmpty && modified.isEmpty {
           callJS("await HelmEditor.loadText(content, ext)",
-                 arguments: ["content": content, "ext": ext])
+                 arguments: ["content": content, "ext": ext],
+                 when: generationCheck(generation),
+                 completion: completion)
         }
         else {
           callJS("""
@@ -323,13 +346,29 @@ final class FileDiffController: WebViewController,
                 "content": content, "ext": ext,
                 "added": added, "deleted": deleted,
                 "modified": modified,
-              ])
+              ],
+              when: generationCheck(generation),
+              completion: completion)
         }
-        isLoaded = true
     }
   }
 
-  func loadNoChangesNotice()
+  private func generationCheck(_ generation: UInt64)
+    -> () -> Bool
+  {
+    { [weak self] in self?.renderGeneration == generation }
+  }
+
+  private func renderClear(generation: UInt64)
+  {
+    diffMaker = nil
+    patch = nil
+    isLoaded = false
+    ensureEditorLoaded()
+    callJS("HelmEditor.clear()", when: generationCheck(generation))
+  }
+
+  func loadNoChangesNotice(generation: UInt64)
   {
     var notice: UIString
 
@@ -341,7 +380,7 @@ final class FileDiffController: WebViewController,
       case .workspace:
         notice = .noUnstagedChanges
     }
-    loadNotice(notice)
+    loadNotice(notice, generation: generation)
   }
 
   // MARK: - Text mode
@@ -399,14 +438,23 @@ final class FileDiffController: WebViewController,
 
   // MARK: - Notices
 
-  func loadNotice(_ text: UIString)
+  func loadNotice(_ text: UIString, generation: UInt64)
   {
-    let escaped = text.rawValue
-      .replacingOccurrences(of: "\\", with: "\\\\")
-      .replacingOccurrences(of: "'", with: "\\'")
-
+    diffMaker = nil
+    patch = nil
+    isLoaded = false
     ensureEditorLoaded()
-    evaluateJS("HelmEditor.loadNotice('\(escaped)')")
+    callJS("HelmEditor.loadNotice(message)",
+           arguments: ["message": text.rawValue],
+           when: generationCheck(generation)) {
+      [weak self] succeeded in
+      guard let self,
+            succeeded,
+            generation == self.renderGeneration
+      else { return }
+
+      self.isLoaded = true
+    }
   }
 
   // MARK: - Hunk staging
@@ -479,30 +527,39 @@ extension FileDiffController: FileContentLoading
 
   public func clear()
   {
-    isLoaded = false
+    renderGeneration &+= 1
     lastSelection = []
-    guard editorReady else { return }
-    evaluateJS("HelmEditor.clear()")
+    stagingType = .none
+    renderClear(generation: renderGeneration)
   }
 
   public func load(selection: [FileSelection])
   {
+    renderGeneration &+= 1
+    let generation = renderGeneration
+
     lastSelection = selection
+    diffMaker = nil
+    patch = nil
+    isLoaded = false
 
     switch selection.count {
       case 0:
-        clear()
+        lastSelection = []
+        stagingType = .none
+        renderClear(generation: generation)
       case 1:
-        loadSingle(selection[0])
+        loadSingle(selection[0], generation: generation)
       default:
-        loadNotice(.multipleItemsSelected)
+        loadNotice(.multipleItemsSelected, generation: generation)
     }
   }
 
   /// Computes the diff/text off the main thread on the repository queue,
   /// then renders the result on the main thread. Serializing the libgit2
   /// work with the queue means a busy queue no longer blocks the preview.
-  private func loadSingle(_ selection: FileSelection)
+  private func loadSingle(_ selection: FileSelection,
+                          generation: UInt64)
   {
     let input = DiffInput(fileList: selection.fileList, repo: repo)
     let path = selection.path
@@ -519,7 +576,7 @@ extension FileDiffController: FileContentLoading
           stagingType: staging, mode: mode,
           whitespace: whitespace, contextLines: contextLines)
 
-      apply(result, stagingType: staging)
+      apply(result, stagingType: staging, generation: generation)
       return
     }
 
@@ -534,7 +591,8 @@ extension FileDiffController: FileContentLoading
           whitespace: whitespace, contextLines: contextLines)
 
       await MainActor.run {
-        self.apply(result, stagingType: staging)
+        self.apply(result, stagingType: staging,
+                   generation: generation)
       }
     }
   }

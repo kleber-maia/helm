@@ -14,6 +14,11 @@ class WebViewController: NSViewController
   /// reloaded, so `editorDidRecover()` fires once the fresh page is ready.
   private var recovering = false
   var pendingCalls: [() -> Void] = []
+  /// Tail of the JavaScript render queue. CodeMirror loading is asynchronous
+  /// (language extensions may be loaded on demand), so starting multiple
+  /// calls independently lets them finish out of order and corrupt the
+  /// mounted editor state.
+  private var javaScriptTail: Task<Void, Never>?
 
   var defaults: UserDefaults = .helm
 
@@ -57,40 +62,60 @@ class WebViewController: NSViewController
   /// Evaluates a JS string when the editor is ready.
   func evaluateJS(_ js: String)
   {
-    guard pageRequested
-    else { return }
-
-    if editorReady {
-      webView.evaluateJavaScript(js)
-    }
-    else {
-      pendingCalls.append { [weak self] in
-        self?.webView.evaluateJavaScript(js)
-      }
-    }
+    callJS(js)
   }
 
   /// Calls an async JS function with named arguments when the editor
   /// is ready. Safer than string interpolation for large payloads.
   func callJS(_ script: String,
-              arguments: [String: Any] = [:])
+              arguments: [String: Any] = [:],
+              when shouldRun: (() -> Bool)? = nil,
+              completion: ((Bool) -> Void)? = nil)
   {
     guard pageRequested
     else { return }
 
     if editorReady {
-      Task { @MainActor in
-        try? await webView.callAsyncJavaScript(
-          script, arguments: arguments, contentWorld: .page)
-      }
+      enqueueJS(script, arguments: arguments,
+                when: shouldRun, completion: completion)
     }
     else {
       pendingCalls.append { [weak self] in
         guard let self else { return }
-        Task { @MainActor in
-          try? await self.webView.callAsyncJavaScript(
+        self.enqueueJS(script, arguments: arguments,
+                       when: shouldRun, completion: completion)
+      }
+    }
+  }
+
+  private func enqueueJS(
+      _ script: String,
+      arguments: [String: Any],
+      when shouldRun: (() -> Bool)?,
+      completion: ((Bool) -> Void)?)
+  {
+    let previous = javaScriptTail
+
+    javaScriptTail = Task { @MainActor in
+      await previous?.value
+
+      guard !Task.isCancelled,
+            shouldRun?() ?? true
+      else {
+        completion?(false)
+        return
+      }
+
+      do {
+        _ = try await webView.callAsyncJavaScript(
             script, arguments: arguments, contentWorld: .page)
-        }
+        completion?(true)
+      }
+      catch {
+        repoLogger.publicError("""
+            editor JavaScript failed error=\(String(describing: error))
+            """)
+        completion?(false)
       }
     }
   }
@@ -221,7 +246,6 @@ extension WebViewController: WKNavigationDelegate
                didFinish navigation: WKNavigation!)
   {
     DispatchQueue.main.async {
-      [self] in
       if let scrollView = webView.enclosingScrollView {
         scrollView.hasHorizontalScroller = false
         scrollView.horizontalScrollElasticity = .none
@@ -244,6 +268,8 @@ extension WebViewController: WKNavigationDelegate
     editorReady = false
     pageRequested = false
     pendingCalls = []
+    javaScriptTail?.cancel()
+    javaScriptTail = nil
     recovering = true
     ensureEditorLoaded()
   }
