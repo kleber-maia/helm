@@ -424,7 +424,7 @@ final class HelmWindowController: NSWindowController,
   {
     repoController.queue.shutDown()
     currentOperation?.abort()
-    WaitForQueue(repoController.queue.queue)
+    repoController.queue.wait()
   }
 
   func updateHistoryCollapse(wasStaging: Bool)

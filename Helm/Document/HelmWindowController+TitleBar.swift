@@ -45,15 +45,27 @@ extension HelmWindowController: TitleBarDelegate
       return
     }
 
-    do {
-      try repoDocument!.repository.checkOut(branch: branchRef)
-      repoController.refsChanged()
-    }
-    catch let error as RepoError {
-      showErrorMessage(error: error)
-    }
-    catch {
-      showErrorMessage(error: .unexpected)
+    guard let repository = repoDocument?.repository
+    else { return }
+
+    repoController.queue.executeOffMainThread { [weak self] in
+
+      do {
+        try repository.checkOut(branch: branchRef)
+        Task { @MainActor in
+          self?.repoController.refsChanged()
+        }
+      }
+      catch let error as RepoError {
+        Task { @MainActor in
+          self?.showErrorMessage(error: error)
+        }
+      }
+      catch {
+        Task { @MainActor in
+          self?.showErrorMessage(error: .unexpected)
+        }
+      }
     }
   }
 

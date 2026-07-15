@@ -68,12 +68,19 @@ final class RepositoryWatcher
                                        queue: controller.queue.queue,
                                        callback: {
       [weak self] (paths) in
-      // Capture the repository here in case it gets deleted on another thread
-      guard let self = self,
-            let repository = self.controller?.repository as? HelmRepository
+      guard let self,
+            let controller = self.controller
       else { return }
-      
-      self.observeEvents(paths, repository)
+
+      controller.queue.executeOffMainThread { [weak self] in
+        // Capture the repository at execution time in case the document was
+        // closed while this event was waiting behind another repository task.
+        guard let self,
+              let repository = self.controller?.repository as? HelmRepository
+        else { return }
+
+        self.observeEvents(paths, repository)
+      }
     })
     else { return nil }
   
@@ -102,7 +109,13 @@ final class RepositoryWatcher
       packedRefsSink = watcher.eventPublisher.sink {
         [weak self] (_, _) in
         repoLogger.publicInfo("watcher event type=packedRefs")
-        self?.checkRefs()
+        guard let self,
+              let controller = self.controller
+        else { return }
+
+        controller.queue.executeOffMainThread { [weak self] in
+          self?.checkRefs()
+        }
       }
     }
     else {

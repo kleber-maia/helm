@@ -19,7 +19,15 @@ final class WorkspaceWatcher
         path: repository.repoURL.path,
         excludePaths: [repository.gitDirectoryPath],
         queue: controller.queue.queue,
-        callback: { [weak self] (paths) in self?.observeEvents(paths) })
+        callback: { [weak self] (paths) in
+          guard let self,
+                let controller = self.controller
+          else { return }
+
+          controller.queue.executeOffMainThread { [weak self] in
+            self?.observeEvents(paths)
+          }
+        })
     else { return nil }
     
     repoLogger.publicInfo("""
