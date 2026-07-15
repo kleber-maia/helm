@@ -27,7 +27,7 @@ final class HistoryTableController: NSViewController,
   @IBOutlet var contextMenu: NSMenu!
   
   var tableView: HistoryTableView { view as! HistoryTableView }
-  let history = GitCommitHistory()
+  private(set) var history = GitCommitHistory()
   var repository: any Repository
   { repoController?.repository as! (any Repository) }
   var sinks: [AnyCancellable] = []
@@ -36,6 +36,8 @@ final class HistoryTableController: NSViewController,
   private var pendingHistoryReload = false
   private var currentBranch: LocalBranchRefName?
   private var lastHistorySignature: HistorySignature?
+  private var loadingHistory: GitCommitHistory?
+  private var historyLoadID: UInt64 = 0
   
   func finishLoad(repository: any Repository)
   {
@@ -100,15 +102,7 @@ final class HistoryTableController: NSViewController,
 
     tableView.setAccessibilityIdentifier("history")
 
-    history.postProgress = {
-      [weak self] (generation, start, end) in
-      self?.batchFinished(generation: generation, start: start, end: end)
-    }
-  }
-  
-  public override func viewWillDisappear()
-  {
-    history.abort()
+    configureProgress(for: history)
   }
   
   /// Reloads the commit history from scratch.
@@ -127,17 +121,19 @@ final class HistoryTableController: NSViewController,
 
     isLoadingHistory = true
     pendingHistoryReload = false
+    historyLoadID += 1
+    let loadID = historyLoadID
     repoLogger.publicInfo("history load begin")
 
-    let history = self.history
     let repository = self.repository
+    let candidate = GitCommitHistory()
+    candidate.repository = repository
+    loadingHistory = candidate
     weak let tableView = view as? NSTableView
-    
-    let generation = history.reset()
 
     let queue = Thread.syncOnMain { repoUIController?.queue }
 
-    queue?.executeAsync {
+    queue?.executeAsync { [self] in
       Signpost.intervalStart(.historyWalking, object: self)
       defer {
         Signpost.intervalEnd(.historyWalking, object: self)
@@ -148,7 +144,8 @@ final class HistoryTableController: NSViewController,
         repoLogger.debug("RevWalker failed")
         DispatchQueue.main.async {
           [weak self] in
-          self?.finishHistoryLoad(generation: generation,
+          self?.finishHistoryLoad(loadID: loadID,
+                                  candidate: candidate,
                                   tableView: tableView,
                                   reloadTable: false)
         }
@@ -170,57 +167,70 @@ final class HistoryTableController: NSViewController,
         }
       }
 
-      history.withSync {
-        history.appendCommits(walker.compactMap {
+      candidate.withSync {
+        candidate.appendCommits(walker.compactMap {
           repository.commit(forOID: $0) as? GitCommit
         })
       }
 
       let signature = HistorySignature(
-          commitOIDs: history.withSync { history.entries.map { $0.commit.id } },
+          commitOIDs: candidate.withSync {
+            candidate.entries.map { $0.commit.id }
+          },
           refs: refOIDs)
       repoLogger.publicInfo("""
-          history walk end generation=\(generation) \
-          commits=\(history.withSync { history.entries.count })
+          history walk end loadID=\(loadID) \
+          commits=\(candidate.withSync { candidate.entries.count })
           """)
-      
-      DispatchQueue.global(qos: .utility).async {
-        // Get off the queue thread, but run this as a queue task so that
-        // progress will be displayed.
-        queue?.executeTask {
-          Signpost.interval(.connectCommits) {
-            history.processFirstBatch()
-          }
-        }
-        DispatchQueue.main.async {
-          [weak self] in
-          self?.finishHistoryLoad(generation: generation,
-                                  tableView: tableView,
-                                  reloadTable: true,
-                                  signature: signature)
-        }
+
+      Signpost.interval(.connectCommits) {
+        candidate.processFirstBatch()
+      }
+      DispatchQueue.main.async {
+        [weak self] in
+        self?.finishHistoryLoad(loadID: loadID,
+                                candidate: candidate,
+                                tableView: tableView,
+                                reloadTable: true,
+                                signature: signature)
       }
     }
   }
 
-  private func finishHistoryLoad(generation: Int,
+  private func configureProgress(for model: GitCommitHistory)
+  {
+    model.postProgress = {
+      [weak self, weak model] (generation, start, end) in
+      guard let self,
+            let model,
+            self.history === model
+      else { return }
+
+      self.batchFinished(generation: generation, start: start, end: end)
+    }
+  }
+
+  private func finishHistoryLoad(loadID: UInt64,
+                                 candidate: GitCommitHistory,
                                  tableView: NSTableView?,
                                  reloadTable: Bool,
                                  signature: HistorySignature? = nil)
   {
-    guard history.isCurrentGeneration(generation)
+    guard historyLoadID == loadID,
+          loadingHistory === candidate
     else {
       repoLogger.publicInfo("""
-          history load ignored generation=\(generation) reason=stale
+          history load ignored loadID=\(loadID) reason=stale
           """)
       return
     }
 
     isLoadingHistory = false
+    loadingHistory = nil
 
     if pendingHistoryReload {
       repoLogger.publicInfo("""
-          history load restart generation=\(generation) reason=pendingReload
+          history load restart loadID=\(loadID) reason=pendingReload
           """)
       loadHistory()
       return
@@ -229,29 +239,33 @@ final class HistoryTableController: NSViewController,
     guard reloadTable
     else {
       repoLogger.publicInfo("""
-          history load end generation=\(generation) reload=false
+          history load end loadID=\(loadID) reload=false
           """)
       return
     }
 
-    // Nothing visibly changed (same commits, same refs): skip the full
-    // reload so the table doesn't flash and the selection/scroll stay put.
-    if let signature = signature,
+    // Nothing visibly changed (same commits, same refs): keep the current
+    // model and preserve its cells, selection, and scroll position.
+    if let signature,
        signature == lastHistorySignature {
       repoLogger.publicInfo("""
-          history load end generation=\(generation) reload=skipped \
+          history load end loadID=\(loadID) reload=skipped \
           reason=unchanged
           """)
       return
     }
     lastHistorySignature = signature
 
+    history.abort()
+    history = candidate
+    configureProgress(for: candidate)
+
     updateGraphColumnOffset()
     tableView?.reloadData()
     ensureSelection()
     updateHeadGraphColor()
     repoLogger.publicInfo("""
-        history load end generation=\(generation) reload=true \
+        history load end loadID=\(loadID) reload=true \
         rows=\(history.withSync { history.entries.count })
         """)
   }
@@ -265,32 +279,22 @@ final class HistoryTableController: NSViewController,
     DispatchQueue.main.async {
       [weak self] in
       guard let self,
-            self.history.isCurrentGeneration(generation),
-            !self.isLoadingHistory,
-            !self.pendingHistoryReload
+            self.history.isCurrentGeneration(generation)
       else { return }
 
       let tableView = self.tableView
       
       let batchRange = start..<end
 
+      let visibleRows = tableView.visibleRows()
+      let rows = IndexSet(integersIn: batchRange).intersection(visibleRows)
+
       self.updateGraphColumnOffset()
-      
-      tableView.enumerateAvailableRowViews {
-        (rowView, row) in
-        guard batchRange.contains(row)
-        else { return }
-        
-        for column in 0..<rowView.numberOfColumns {
-          if let cellView = rowView.view(atColumn: column) as? HistoryCellView {
-            cellView.needsUpdateConstraints = true
-            cellView.needsLayout = true
-            cellView.needsDisplay = true
-          }
-        }
-        if rowView.numberOfColumns == 0 {
-          rowView.needsDisplay = true
-        }
+
+      if !rows.isEmpty {
+        let columns = IndexSet(integersIn: 0..<tableView.tableColumns.count)
+        tableView.reloadData(forRowIndexes: rows,
+                             columnIndexes: columns)
       }
       self.updateHeadGraphColor()
     }
@@ -400,7 +404,10 @@ final class HistoryTableController: NSViewController,
   
   func setCellTextColor(_ cellView: NSTableCellView, index: Int)
   {
-    let entry = history.entries[index]
+    guard let entry = history.withSync({
+      history.entries.indices.contains(index) ? history.entries[index] : nil
+    })
+    else { return }
     let deemphasized = (entry.commit.parentOIDs.count > 1) &&
                        UserDefaults.helm.deemphasizeMerges
 
@@ -461,7 +468,10 @@ extension HistoryTableController: NSTableViewDelegate
                                           owner: self) as? NSTableCellView
     else { return nil }
     
-    let entry = history.entries[row]
+    guard let entry = history.withSync({
+      history.entries.indices.contains(row) ? history.entries[row] : nil
+    })
+    else { return nil }
 
     switch tableColumn.identifier {
       
@@ -510,10 +520,13 @@ extension HistoryTableController: NSTableViewDelegate
     
     let selectedRow = tableView.selectedRow
     
-    if (selectedRow >= 0) && (selectedRow < history.entries.count) {
+    if let commit = history.withSync({
+      history.entries.indices.contains(selectedRow)
+          ? history.entries[selectedRow].commit : nil
+    }) {
       repoUIController?.selection =
           CommitSelection(repository: repository,
-                          commit: history.entries[selectedRow].commit)
+                          commit: commit)
     }
   }
 
@@ -528,7 +541,11 @@ extension HistoryTableController: HelmTableViewDelegate
           let controller = repoUIController
     else { return }
     
-    let entry = history.entries[selectionIndex]
+    guard let entry = history.withSync({
+      history.entries.indices.contains(selectionIndex)
+          ? history.entries[selectionIndex] : nil
+    })
+    else { return }
     let newSelection = CommitSelection(repository: repository,
                                        commit: entry.commit)
     
@@ -552,10 +569,6 @@ extension HistoryTableController: NSTableViewDataSource
 {
   public func numberOfRows(in tableView: NSTableView) -> Int
   {
-    objc_sync_enter(history)
-    defer {
-      objc_sync_exit(history)
-    }
-    return history.entries.count
+    history.withSync { history.entries.count }
   }
 }

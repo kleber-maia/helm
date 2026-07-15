@@ -252,7 +252,7 @@ final class CommitHistory<C: Commit>: @unchecked Sendable
       batchStart = 0
       return self.generation
     }
-    processBatches(throughRow: batchSize-1, generation: generation)
+    _ = processNextConnectionBatch(generation: generation)
   }
   
   /// Starts processing rows until the given row is processed. If processing
@@ -284,13 +284,13 @@ final class CommitHistory<C: Commit>: @unchecked Sendable
       repoLogger.publicDebug("""
           history processing start generation=\(generation) target=\(row)
           """)
-      DispatchQueue.global(qos: .utility).async {
-        if let queue = queue {
-          queue.executeTask {
-            self.processBatch(generation: generation)
-          }
+      if let queue {
+        queue.executeAsync {
+          self.processBatch(generation: generation)
         }
-        else {
+      }
+      else {
+        DispatchQueue.global(qos: .utility).async {
           self.processBatch(generation: generation)
         }
       }
@@ -302,6 +302,11 @@ final class CommitHistory<C: Commit>: @unchecked Sendable
     Signpost.interval(.processBatches) {
       repoLogger.publicDebug("history processBatch begin generation=\(generation)")
       defer {
+        self.withSync {
+          if generation == self.generation {
+            self.batchTargetRow = 0
+          }
+        }
         repoLogger.publicDebug("history processBatch end generation=\(generation)")
       }
 
