@@ -3,6 +3,7 @@ import Cocoa
 final class FileTreeDataSource: FileListDataSourceBase
 {
   fileprivate var root: FileChangeNode
+  private var hasLoaded = false
 
   override init(useWorkspaceList: Bool)
   {
@@ -48,26 +49,64 @@ extension FileTreeDataSource: FileListDataSource
       let container = TreeNodeContainer(node: newRoot)
 
       await MainActor.run {
-        self.root = container.node
-
         guard let outlineView = self.outlineView
         else { return }
 
         let selectedRow = outlineView.selectedRow
         let selectedChange = self.fileChange(at: selectedRow)
+        let collapsedPaths = self.hasLoaded
+            ? self.collapsedPaths(in: self.root)
+            : []
+
+        self.root = container.node
 
         outlineView.reloadData()
-        self.expandAll()
+        self.restoreExpansion(collapsedPaths: collapsedPaths)
         self.reselect(item: selectedChange, oldRow: selectedRow)
+        self.hasLoaded = true
       }
     }
   }
-  
-  private func expandAll()
+
+  private func collapsedPaths(in root: FileChangeNode) -> Set<String>
+  {
+    guard let outlineView = outlineView
+    else { return [] }
+
+    var paths = Set<String>()
+
+    func collect(from node: FileChangeNode)
+    {
+      for child in node.children where !child.children.isEmpty {
+        if !outlineView.isItemExpanded(child) {
+          paths.insert(child.value.gitPath)
+        }
+        collect(from: child)
+      }
+    }
+
+    collect(from: root)
+    return paths
+  }
+
+  private func restoreExpansion(collapsedPaths: Set<String>)
   {
     guard let outlineView = outlineView
     else { return }
+
     outlineView.expandItem(nil, expandChildren: true)
+
+    func restore(from node: FileChangeNode)
+    {
+      for child in node.children where !child.children.isEmpty {
+        restore(from: child)
+        if collapsedPaths.contains(child.value.gitPath) {
+          outlineView.collapseItem(child)
+        }
+      }
+    }
+
+    restore(from: root)
   }
   
   func reselect(item: FileChange?, oldRow: Int)

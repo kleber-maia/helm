@@ -20,10 +20,17 @@ class StagingSectionItem
 /// root sections in a single `NSOutlineView`.
 final class StagingTreeDataSource: FileListDataSourceBase
 {
+  private struct ExpansionKey: Hashable
+  {
+    let isStaged: Bool
+    let path: String
+  }
+
   let stagedSection: StagingSectionItem
   let unstagedSection: StagingSectionItem
   private var sections: [StagingSectionItem]
   { [stagedSection, unstagedSection] }
+  private var hasLoaded = false
 
   /// Object identifiers of all nodes in the staged tree, for O(1) lookup.
   private(set) var stagedNodeIDs = Set<ObjectIdentifier>()
@@ -130,6 +137,12 @@ extension StagingTreeDataSource: FileListDataSource
 
         let selectedRow = outlineView.selectedRow
         let selectedChange = self.fileChange(at: selectedRow)
+        let collapsedSections = self.hasLoaded
+            ? self.collapsedSections()
+            : []
+        let collapsedFolders = self.hasLoaded
+            ? self.collapsedFolders()
+            : []
 
         self.stagedSection.root = newStagedRoot
         self.unstagedSection.root = newUnstagedRoot
@@ -137,8 +150,10 @@ extension StagingTreeDataSource: FileListDataSource
             from: newStagedRoot)
 
         outlineView.reloadData()
-        self.expandAll()
+        self.restoreExpansion(collapsedSections: collapsedSections,
+                              collapsedFolders: collapsedFolders)
         self.reselect(item: selectedChange, oldRow: selectedRow)
+        self.hasLoaded = true
 
         let empty = newStagedRoot.children.isEmpty
             && newUnstagedRoot.children.isEmpty
@@ -230,11 +245,67 @@ extension StagingTreeDataSource: NSOutlineViewDataSource
 // MARK: Expansion & Selection Helpers
 private extension StagingTreeDataSource
 {
-  func expandAll()
+  func collapsedSections() -> Set<Bool>
+  {
+    guard let outlineView = outlineView
+    else { return [] }
+
+    return Set(sections.compactMap {
+      outlineView.isItemExpanded($0) ? nil : $0.isStaged
+    })
+  }
+
+  private func collapsedFolders() -> Set<ExpansionKey>
+  {
+    guard let outlineView = outlineView
+    else { return [] }
+
+    var keys = Set<ExpansionKey>()
+
+    func collect(from node: FileChangeNode, isStaged: Bool)
+    {
+      for child in node.children where !child.children.isEmpty {
+        if !outlineView.isItemExpanded(child) {
+          keys.insert(ExpansionKey(isStaged: isStaged,
+                                   path: child.value.gitPath))
+        }
+        collect(from: child, isStaged: isStaged)
+      }
+    }
+
+    collect(from: stagedSection.root, isStaged: true)
+    collect(from: unstagedSection.root, isStaged: false)
+    return keys
+  }
+
+  private func restoreExpansion(collapsedSections: Set<Bool>,
+                                collapsedFolders: Set<ExpansionKey>)
   {
     guard let outlineView = outlineView
     else { return }
+
     outlineView.expandItem(nil, expandChildren: true)
+
+    func restore(from node: FileChangeNode, isStaged: Bool)
+    {
+      for child in node.children where !child.children.isEmpty {
+        restore(from: child, isStaged: isStaged)
+
+        let key = ExpansionKey(isStaged: isStaged,
+                               path: child.value.gitPath)
+        if collapsedFolders.contains(key) {
+          outlineView.collapseItem(child)
+        }
+      }
+    }
+
+    restore(from: stagedSection.root, isStaged: true)
+    restore(from: unstagedSection.root, isStaged: false)
+
+    for section in sections
+        where collapsedSections.contains(section.isStaged) {
+      outlineView.collapseItem(section)
+    }
   }
 
   func reselect(item: FileChange?, oldRow: Int)
