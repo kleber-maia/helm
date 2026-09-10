@@ -170,27 +170,34 @@ extension HelmRepository: FileStatusDetection
   
   public func stagedChanges() -> [FileChange]
   {
-    if let result = cachedStagedChanges {
-      return result
-    }
-    else {
-      let result = statusChanges(.indexOnly)
-      
-      cachedStagedChanges = result
-      return result
+    // Keep cache population serialized with repository writes so a status
+    // calculated before a commit cannot be cached after its invalidation.
+    return mutex.withLock {
+      if let result = cachedStagedChanges {
+        return result
+      }
+      else {
+        let result = statusChanges(.indexOnly)
+
+        cachedStagedChanges = result
+        return result
+      }
     }
   }
   
   public func amendingStagedChanges() -> [FileChange]
   {
-    if let result = cachedAmendChanges {
-      return result
-    }
-    else {
-      let result = statusChanges(.indexOnly, amend: true)
-      
-      cachedAmendChanges = result
-      return result
+    // This cache has the same ordering requirement as stagedChanges().
+    return mutex.withLock {
+      if let result = cachedAmendChanges {
+        return result
+      }
+      else {
+        let result = statusChanges(.indexOnly, amend: true)
+
+        cachedAmendChanges = result
+        return result
+      }
     }
   }
   
