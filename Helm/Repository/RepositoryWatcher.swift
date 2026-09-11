@@ -46,6 +46,7 @@ final class RepositoryWatcher
   }
   
   var refsCache: [GeneralRefName: GitOID]
+  private var headOIDCache: GitOID?
 
   var packedRefsSink, stashSink: AnyCancellable?
 
@@ -56,6 +57,7 @@ final class RepositoryWatcher
     
     self.controller = controller
     self.refsCache = Self.index(from: repository)
+    self.headOIDCache = repository.headOID
     repoLogger.publicInfo("""
         watcher init type=repository path=\(repository.gitDirectoryPath) \
         refs=\(self.refsCache.count)
@@ -217,6 +219,36 @@ final class RepositoryWatcher
       repoLogger.publicInfo("watcher send type=head")
       repository.updateCurrentBranch(reason: "headChanged")
       publishers.send(.head)
+      checkHeadOID(repository: repository)
+    }
+  }
+
+  /// Publishes a status change when the tree used as the index baseline moves.
+  /// This includes commits made outside Helm, which usually update a branch
+  /// ref without touching `.git/HEAD` or `.git/index`.
+  func checkHeadOID(repository: HelmRepository)
+  {
+    let newOID = repository.headOID
+    let changed = mutex.withLock { () -> Bool in
+      guard newOID != headOIDCache
+      else { return false }
+
+      headOIDCache = newOID
+      return true
+    }
+
+    if changed {
+      repoLogger.publicInfo("watcher head OID changed")
+      controller?.indexChanged()
+    }
+  }
+
+  func resetHeadCache(repository: HelmRepository)
+  {
+    let headOID = repository.headOID
+
+    mutex.withLock {
+      headOIDCache = headOID
     }
   }
   
@@ -263,6 +295,7 @@ final class RepositoryWatcher
       repository.rebuildRefsIndex()
       repository.refsChanged()
       publishers.send(.refs)
+      checkHeadOID(repository: repository)
     }
     
     refsCache = newRefCache
@@ -296,6 +329,19 @@ final class RepositoryWatcher
         watcher event type=repository count=\(standardizedPaths.count) \
         paths=\(standardizedPaths.joined(separator: ","))
         """)
+
+    // FileEventStream uses an empty path list to request a full rescan after
+    // FSEvents drops events. A commit can move HEAD without changing the
+    // index, so checking only the index here leaves status based on the old
+    // commit until a branch checkout happens to invalidate it.
+    if standardizedPaths.isEmpty {
+      checkIndex(repository: repository)
+      checkRefs()
+      repository.updateCurrentBranch(reason: "repositoryRescan")
+      publishers.send(.head)
+      checkHeadOID(repository: repository)
+      return
+    }
   
     checkIndex(repository: repository)
     checkHead(changedPaths: standardizedPaths, repository: repository)

@@ -116,6 +116,8 @@ extension GitRepositoryController: RepositoryPublishing
   }
 
   public func indexChanged() {
+    invalidateIndex()
+    repoWatcher?.resetHeadCache(repository: xtRepo)
     repoLogger.publicInfo("publisher send type=index path=\(self.xtRepo.repoURL.path)")
     repoWatcher!.publishers.send(.index)
   }
@@ -129,6 +131,7 @@ extension GitRepositoryController: RepositoryPublishing
     repoWatcher?.resetRefsCache()
     repoLogger.publicInfo("publisher send type=refs path=\(self.xtRepo.repoURL.path)")
     repoWatcher?.publishers.send(.refs)
+    repoWatcher?.checkHeadOID(repository: xtRepo)
   }
 
   public func tryRefsChanged() -> Bool {
@@ -143,6 +146,7 @@ extension GitRepositoryController: RepositoryPublishing
     repoWatcher?.resetRefsCache()
     repoLogger.publicInfo("publisher send type=refs path=\(self.xtRepo.repoURL.path)")
     repoWatcher?.publishers.send(.refs)
+    repoWatcher?.checkHeadOID(repository: xtRepo)
     return true
   }
   
@@ -166,6 +170,11 @@ extension GitRepositoryController
   public func invalidateIndex()
   {
     repoLogger.publicDebug("cache invalidateIndex path=\(self.xtRepo.repoURL.path)")
-    cache.invalidateIndex()
+    // Status calculations populate their cache while holding this lock. Wait
+    // for an older calculation to finish before clearing it so that result
+    // cannot be installed after this invalidation.
+    xtRepo.performReading {
+      cache.invalidateIndex()
+    }
   }
 }

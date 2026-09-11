@@ -227,8 +227,9 @@ final class ReviewFileListController: FileListController
 
   @objc func refreshStaging(_ sender: Any?)
   {
-    repoController?.invalidateIndex()
-    stagingDataSource.reload()
+    // Publish the refresh so the Review tree, preview, and sidebar count all
+    // update from the same invalidated repository status.
+    repoController?.indexChanged()
   }
 
   /// Returns `true` when the currently selected item is under the
