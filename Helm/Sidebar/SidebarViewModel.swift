@@ -165,6 +165,11 @@ final class SidebarViewModel<Brancher, Manager, Referencer, Stasher, Tagger, Sub
 
   private var unfilteredItems: [PathTreeNode<SidebarTreeItem>] = []
 
+  /// Stash change counts keyed by stash commit OID. Stash contents are
+  /// immutable, so the diffs only need computing once; recomputing them
+  /// on every refresh stalled the main thread when the window got focus.
+  private var stashCountCache: [GitOID: (unstaged: Int, staged: Int)] = [:]
+
   init(brancher: Brancher,
        detector _: any FileStatusDetection,
        remoteManager: Manager,
@@ -327,13 +332,21 @@ final class SidebarViewModel<Brancher, Manager, Referencer, Stasher, Tagger, Sub
 
   private func stashChildren() -> [PathTreeNode<SidebarTreeItem>]
   {
-    stasher.stashes.map {
-      .leaf(.stash(.init(id: $0.id,
-                         message: $0.mainCommit?.messageSummary ?? "WIP",
-                         date: $0.mainCommit?.commitDate,
-                         unstagedCount: $0.workspaceChanges().count,
-                         stagedCount: $0.indexChanges().count)))
+    var counts: [GitOID: (unstaged: Int, staged: Int)] = [:]
+    let children: [PathTreeNode<SidebarTreeItem>] = stasher.stashes.map {
+      let count = stashCountCache[$0.id] ??
+          ($0.workspaceChanges().count, $0.indexChanges().count)
+
+      counts[$0.id] = count
+      return .leaf(.stash(.init(id: $0.id,
+                                message: $0.mainCommit?.messageSummary ?? "WIP",
+                                date: $0.mainCommit?.commitDate,
+                                unstagedCount: count.unstaged,
+                                stagedCount: count.staged)))
     }
+
+    stashCountCache = counts
+    return children
   }
 
   private func submoduleChildren() -> [PathTreeNode<SidebarTreeItem>]
