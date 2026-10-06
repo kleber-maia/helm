@@ -91,15 +91,43 @@ git submodule update --init --recursive
 # Build libgit2 from source (if needed)
 ./build_libgit2.sh
 
-# Build the app
-xcodebuild -project Helm.xcodeproj -scheme Helm -configuration Debug build
+# Build the app from the repository root
+./build.sh
 
-# Run tests (no test targets currently exist, so this will build only)
-xcodebuild -project Helm.xcodeproj -scheme Helm -configuration Debug test
+# Test invocation (no test targets currently exist)
+xcodebuild -project Helm.xcodeproj -scheme Helm -configuration Debug \
+  -derivedDataPath build/DerivedData test
 
 # Lint (runs automatically during Xcode build if SwiftLint is installed)
 swiftlint lint Helm/
 ```
+
+### Build Output & UI Verification
+
+- Use `./build.sh` for local Debug builds. It resolves the repository root and
+  always builds into `build/DerivedData`, even when called from another directory.
+  When invoking `xcodebuild` directly, use `-derivedDataPath build/DerivedData`
+  from the repository root. The canonical Debug app is
+  `build/DerivedData/Build/Products/Debug/Helm.app`
+  relative to the repository root. Omitting this flag builds a separate copy
+  under `~/Library/Developer/Xcode/DerivedData`, which may not be the app the
+  user is running.
+- A successful build does not update an already-running process. For UI
+  verification, quit the existing Helm instance after preserving any active
+  terminal work, then launch the exact app built above:
+
+  ```bash
+  open "$PWD/build/DerivedData/Build/Products/Debug/Helm.app"
+  ```
+
+- Verify the running executable path before checking behavior. In Activity
+  Monitor, search for Helm and double-click its main process; Executable Path
+  must end in `build/DerivedData/Build/Products/Debug/Helm.app/Contents/MacOS/Helm`
+  under this checkout. Launch by explicit path; `open -a Helm` or a Dock icon
+  can select another copy.
+- Report build success and observed UI verification separately. If the app
+  was not relaunched and checked, say so; do not claim the running app contains
+  the fix based only on a successful build or an isolated AppKit check.
 
 ### Setup Requirements
 

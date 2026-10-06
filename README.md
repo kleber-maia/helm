@@ -75,11 +75,24 @@ brew install libgit2 openssl@3
 Build the app:
 
 ```bash
-xcodebuild -project Helm.xcodeproj -scheme Helm -configuration Debug build
+./build.sh
 ```
 
+The Debug app is written to `build/DerivedData/Build/Products/Debug/Helm.app`.
+Quit any running Helm instance after preserving active terminal work, then
+launch this exact copy from the repository root:
+
+```bash
+open "$PWD/build/DerivedData/Build/Products/Debug/Helm.app"
+```
+
+Building does not update an already-running app. See
+[Building and running the same app](CONTRIBUTING.md#building-and-running-the-same-app)
+for how to verify which binary is running.
+
 You can also open `Helm.xcodeproj` in Xcode and run the `Helm` scheme. On
-Apple Silicon, use the `My Mac` destination rather than Rosetta.
+Apple Silicon, use the `My Mac` destination rather than Rosetta. Configure the
+project's Derived Data location to the same `build/DerivedData` directory.
 
 ## Code Signing
 
@@ -135,7 +148,7 @@ Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
 Useful local checks:
 
 ```bash
-xcodebuild -project Helm.xcodeproj -scheme Helm -configuration Debug build
+./build.sh
 swiftlint lint Helm/
 ```
 

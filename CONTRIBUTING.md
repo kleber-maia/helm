@@ -15,6 +15,46 @@ If you are building on an Apple Silicon computer (eg one with an M1 or M2 proces
 
 For a more detailed description of this, you can have a look at the comments within the file "Xcode-config/Shared.xcconfig". 
 
+### Building and running the same app
+
+Use the build script for local Debug builds. From the repository root:
+
+```bash
+./build.sh
+```
+
+The script resolves the repository root and fixes the output directory to
+`build/DerivedData`, even when invoked by path from another directory. It runs
+the equivalent of this command from the repository root:
+
+```bash
+xcodebuild -project Helm.xcodeproj -scheme Helm -configuration Debug \
+  -derivedDataPath build/DerivedData build
+```
+
+This produces `build/DerivedData/Build/Products/Debug/Helm.app`. Without
+`-derivedDataPath`, Xcode builds another copy under
+`~/Library/Developer/Xcode/DerivedData`. If using Xcode, configure this project's
+Derived Data location to the same `build/DerivedData` directory.
+
+A successful build does not replace the code loaded by a running Helm process.
+After the build succeeds, preserve any active terminal work, quit the existing
+Helm instance, and launch the exact newly built app:
+
+```bash
+open "$PWD/build/DerivedData/Build/Products/Debug/Helm.app"
+```
+
+Avoid launching by app name (`open -a Helm`) or a Dock icon when verifying a
+change, since either can select another copy. To confirm the running binary,
+open Activity Monitor, search for Helm, and double-click its main process.
+Executable Path should be this checkout's
+`build/DerivedData/Build/Products/Debug/Helm.app/Contents/MacOS/Helm`.
+
+Reproduce the changed UI behavior in that newly launched app. Report build
+success separately from UI verification; if you did not relaunch and check the
+app, say so explicitly.
+
 ## Finding tasks
 
 If you're looking for a starter task, several issues have been marked "good first issue". These should provide a relatively easy intro to the code base.

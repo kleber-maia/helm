@@ -25,18 +25,35 @@ If libgit2 needs rebuilding from source: `./build_libgit2.sh`
 ## Build & Test
 
 ```bash
-# Build
-xcodebuild -project Helm.xcodeproj -scheme Helm -configuration Debug build
+# Build from the repository root
+./build.sh
 
-# Run all tests
-xcodebuild -project Helm.xcodeproj -scheme Helm -configuration Debug test
-
-# Run a single test class
-xcodebuild -project Helm.xcodeproj -scheme Helm -configuration Debug test -only-testing:HelmTests/SidebarDataModelTest
+# Test invocation (no test targets currently exist)
+xcodebuild -project Helm.xcodeproj -scheme Helm -configuration Debug \
+  -derivedDataPath build/DerivedData test
 
 # Lint (runs automatically on build if SwiftLint is installed)
 swiftlint lint Helm/
 ```
+
+Use `./build.sh` for local Debug builds; it always builds into `build/DerivedData`
+and works when invoked by path from another directory. The canonical Debug app is
+`build/DerivedData/Build/Products/Debug/Helm.app` under this checkout. Omitting
+`-derivedDataPath` builds a separate copy in Xcode's default DerivedData folder.
+
+Before UI verification, preserve active terminal work, quit the existing Helm
+instance, and launch the exact newly built app:
+
+```bash
+open "$PWD/build/DerivedData/Build/Products/Debug/Helm.app"
+```
+
+Confirm its executable path in Activity Monitor before checking behavior;
+launching by app name or a Dock icon can select another copy. A successful build
+does not update a running process. Report build success separately from actual
+UI verification, and say explicitly if you did not relaunch and check the app.
+See [CONTRIBUTING.md](CONTRIBUTING.md#building-and-running-the-same-app) for the
+full workflow.
 
 ## Architecture
 
