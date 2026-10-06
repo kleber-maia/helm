@@ -74,6 +74,7 @@ class FileListController: NSViewController, RepositoryWindowViewController
   {
     super.loadView()
     outlineView.intercellSpacing = NSSize(width: 3, height: 6)
+    outlineView.autoresizesOutlineColumn = false
     applyLiquidGlassStyling()
     updateButtons()
 
@@ -100,10 +101,19 @@ class FileListController: NSViewController, RepositoryWindowViewController
     }
   }
 
+  override func viewDidLayout()
+  {
+    super.viewDidLayout()
+
+    // Fit the initial column widths to the pane before any user resizing.
+    outlineView.sizeToFit()
+  }
+
   func applyLiquidGlassStyling()
   {
     outlineView.backgroundColor = .clear
     if let scrollView = outlineView.enclosingScrollView {
+      scrollView.horizontalScrollElasticity = .none
       scrollView.drawsBackground = false
       scrollView.backgroundColor = .clear
       scrollView.contentView.drawsBackground = false
