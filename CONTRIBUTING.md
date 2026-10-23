@@ -32,10 +32,14 @@ xcodebuild -project Helm.xcodeproj -scheme Helm -configuration Debug \
   -derivedDataPath build/DerivedData build
 ```
 
-This produces `build/DerivedData/Build/Products/Debug/Helm.app`. Without
-`-derivedDataPath`, Xcode builds another copy under
-`~/Library/Developer/Xcode/DerivedData`. If using Xcode, configure this project's
-Derived Data location to the same `build/DerivedData` directory.
+This produces `build/DerivedData/Build/Products/Debug/Helm.app`.
+`Xcode-config/Shared.xcconfig` pins `CONFIGURATION_BUILD_DIR` to this checkout's
+`build/DerivedData/Build/Products/$(CONFIGURATION)`, so Xcode and direct
+`xcodebuild` invocations produce the app in the same place even without
+`-derivedDataPath`. Debug, Release, and coverage builds have separate folders.
+No manual Xcode location setup is needed. The script also keeps intermediate
+files and package checkouts in `build/DerivedData`; direct builds may use
+Xcode's default cache locations for those files.
 
 SwiftTerm 1.99.1 includes a build-tool plugin that generates version and
 terminal-capability information. If Xcode reports that

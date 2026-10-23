@@ -1,3 +1,7 @@
+// Keep the app in the same location for Xcode and command-line builds.
+// Leave SYMROOT/OBJROOT managed by Xcode for Swift Package compatibility.
+CONFIGURATION_BUILD_DIR = $(PROJECT_DIR)/build/DerivedData/Build/Products/$(CONFIGURATION)
+
 // #include "DEVELOPMENT_TEAM.xcconfig"
 
 // Create the file DEVELOPMENT_TEAM.xcconfig

@@ -109,9 +109,12 @@ swiftlint lint Helm/
   When invoking `xcodebuild` directly, use `-derivedDataPath build/DerivedData`
   from the repository root. The canonical Debug app is
   `build/DerivedData/Build/Products/Debug/Helm.app`
-  relative to the repository root. Omitting this flag builds a separate copy
-  under `~/Library/Developer/Xcode/DerivedData`, which may not be the app the
-  user is running.
+  relative to the repository root. `Xcode-config/Shared.xcconfig` also pins
+  `CONFIGURATION_BUILD_DIR` to this checkout's
+  `build/DerivedData/Build/Products/$(CONFIGURATION)` for all configurations,
+  so Xcode and direct builds use the same app location even without the flag.
+  Keep the flag for consistent intermediate-file and package-cache locations.
+  Do not override the configured product directory or change this convention.
 - A successful build does not update an already-running process. For UI
   verification, quit the existing Helm instance after preserving any active
   terminal work, then launch the exact app built above:

@@ -78,7 +78,10 @@ Build the app:
 ./build.sh
 ```
 
-The Debug app is written to `build/DerivedData/Build/Products/Debug/Helm.app`.
+The Debug app is always written to
+`build/DerivedData/Build/Products/Debug/Helm.app` in this checkout. The shared
+project configuration fixes this location for the script, Xcode, and direct
+`xcodebuild` builds.
 Quit any running Helm instance after preserving active terminal work, then
 launch this exact copy from the repository root:
 
@@ -91,8 +94,8 @@ Building does not update an already-running app. See
 for how to verify which binary is running.
 
 You can also open `Helm.xcodeproj` in Xcode and run the `Helm` scheme. On
-Apple Silicon, use the `My Mac` destination rather than Rosetta. Configure the
-project's Derived Data location to the same `build/DerivedData` directory.
+Apple Silicon, use the `My Mac` destination rather than Rosetta. No manual
+build-output location setup is needed.
 
 ## Code Signing
 
