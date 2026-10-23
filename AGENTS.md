@@ -153,7 +153,7 @@ Dependencies are managed via **Xcode's Swift Package Manager integration** (no `
 | Package | Source | Purpose |
 |---------|--------|---------|
 | FakedMacro | `https://github.com/Uncommon/FakedMacro` (main branch) | Macro to generate fake test doubles |
-| SwiftTerm | `https://github.com/migueldeicaza/SwiftTerm.git` (1.5.0+) | Embedded terminal emulator |
+| SwiftTerm | `https://github.com/migueldeicaza/SwiftTerm.git` (1.99.1+) | Embedded terminal emulator |
 
 Native dependencies:
 

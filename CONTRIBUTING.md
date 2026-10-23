@@ -37,6 +37,11 @@ This produces `build/DerivedData/Build/Products/Debug/Helm.app`. Without
 `~/Library/Developer/Xcode/DerivedData`. If using Xcode, configure this project's
 Derived Data location to the same `build/DerivedData` directory.
 
+SwiftTerm 1.99.1 includes a build-tool plugin that generates version and
+terminal-capability information. If Xcode reports that
+`SwiftTermBuildInfoPlugin` must be enabled, trust and enable that plugin in
+Xcode before building from the command line.
+
 A successful build does not replace the code loaded by a running Helm process.
 After the build succeeds, preserve any active terminal work, quit the existing
 Helm instance, and launch the exact newly built app:

@@ -30,6 +30,8 @@ final class TerminalViewController: NSViewController
 
   override func loadView()
   {
+    // SwiftTerm preserves the viewport while reading scrollback and resumes
+    // following output when the user scrolls back to the bottom.
     let terminal = LocalProcessTerminalView(frame: .zero)
     let terminalFont = NSFont.monospacedSystemFont(ofSize: 13,
                                                    weight: .regular)
