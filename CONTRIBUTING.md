@@ -64,6 +64,27 @@ Reproduce the changed UI behavior in that newly launched app. Report build
 success separately from UI verification; if you did not relaunch and check the
 app, say so explicitly.
 
+## Testing
+
+Run the hostless XCTest suite through the shared Helm scheme:
+
+```bash
+xcodebuild -project Helm.xcodeproj -scheme Helm -configuration Debug \
+  -derivedDataPath build/DerivedData -destination 'platform=macOS' test
+```
+
+The HelmTests target compiles the same internal workspace-event batcher used
+by the app. It uses a virtual scheduler and fake ignore rules to check
+coalescing, full rescans, cancellation and concurrency without sleeping,
+opening repositories or launching Helm. A scheduler smoke check verifies
+production delivery on the main queue. App builds and UI verification remain
+separate checks.
+
+The workspace watcher uses a fixed one-second batching window; the reusable
+batcher retains a 250 ms default. Timing tests cover both configurations.
+The window does not restart under continuous writes. FSEvents and queue
+latency add to this delay, so it is not a strict one-second UI refresh bound.
+
 ## Finding tasks
 
 If you're looking for a starter task, several issues have been marked "good first issue". These should provide a relatively easy intro to the code base.

@@ -91,6 +91,8 @@
 		E57857C8EC012778E8F68749 /* QueueUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95D45656BBEBE3F3168D3425 /* QueueUtils.swift */; };
 		EB558062B79791C3C95E3E46 /* PublisherGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60968A89164FBB0DF5F42987 /* PublisherGroup.swift */; };
 		FD3E756AD0AA7FFAE04EAD41 /* Signpost.swift in Sources */ = {isa = PBXBuildFile; fileRef = E445DE41CC87A67ABFDC1B72 /* Signpost.swift */; };
+		E7B100000000000000000001 /* WorkspaceEventBatcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B100000000000000000003 /* WorkspaceEventBatcherTests.swift */; };
+		E7B100000000000000000002 /* WorkspaceEventBatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B100000000000000000004 /* WorkspaceEventBatcher.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -188,6 +190,9 @@
 		E445DE41CC87A67ABFDC1B72 /* Signpost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Signpost.swift; path = Helm/Utils/Signpost.swift; sourceTree = SOURCE_ROOT; };
 		F0FDD823C5A148EF755FACBD /* CustomActionRunner.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CustomActionRunner.swift; sourceTree = "<group>"; };
 		F1E2D3C4B5A6978605432109 /* HelmSplitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = HelmSplitView.swift; path = Helm/Utils/HelmSplitView.swift; sourceTree = SOURCE_ROOT; };
+		E7B100000000000000000003 /* WorkspaceEventBatcherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceEventBatcherTests.swift; sourceTree = "<group>"; };
+		E7B100000000000000000004 /* WorkspaceEventBatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WorkspaceEventBatcher.swift; path = Helm/Repository/WorkspaceEventBatcher.swift; sourceTree = SOURCE_ROOT; };
+		E7B100000000000000000005 /* HelmTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HelmTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -200,7 +205,6 @@
 		89F336A02F814B3200A5E9DA /* FileView */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = FileView; sourceTree = "<group>"; };
 		89F33B632F814B5E00A5E9DA /* Document */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Document; sourceTree = "<group>"; };
 		89F33B722F814BB200A5E9DA /* Services */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Services; sourceTree = "<group>"; };
-
 		A1BC0F002F73521B0048F5FB /* Terminal */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Terminal; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
@@ -220,6 +224,12 @@
 				C9CDB922270D50C1007C2E77 /* libz.tbd in Frameworks */,
 				89F24B842C498878007D632E /* FakedMacro in Frameworks */,
 			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E7B100000000000000000009 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = ();
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
@@ -291,6 +301,7 @@
 				C9CDB990270DDE0D007C2E77 /* git2 */,
 				3DB98C8223E0928A0039B454 /* Xcode-config */,
 				C3FA470613D0F8E200AC4F9B /* Helm */,
+				E7B100000000000000000006 /* HelmTests */,
 				C3FA46FF13D0F8E200AC4F9B /* Frameworks */,
 				C3FA46FD13D0F8E200AC4F9B /* Products */,
 				89C2A7792E8AF84D00765D84 /* Helm.icon */,
@@ -304,6 +315,7 @@
 			isa = PBXGroup;
 			children = (
 				C3FA46FC13D0F8E200AC4F9B /* Helm.app */,
+				E7B100000000000000000005 /* HelmTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -380,6 +392,15 @@
 			name = "Supporting Files";
 			sourceTree = "<group>";
 		};
+		E7B100000000000000000006 /* HelmTests */ = {
+			isa = PBXGroup;
+			children = (
+				E7B100000000000000000003 /* WorkspaceEventBatcherTests.swift */,
+				E7B100000000000000000004 /* WorkspaceEventBatcher.swift */,
+			);
+			path = HelmTests;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -418,6 +439,21 @@
 			productName = Helm;
 			productReference = C3FA46FC13D0F8E200AC4F9B /* Helm.app */;
 			productType = "com.apple.product-type.application";
+		};
+		E7B100000000000000000007 /* HelmTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E7B10000000000000000000E /* Build configuration list for PBXNativeTarget "HelmTests" */;
+			buildPhases = (
+				E7B100000000000000000008 /* Sources */,
+				E7B100000000000000000009 /* Frameworks */,
+				E7B10000000000000000000A /* Resources */,
+			);
+			buildRules = ();
+			dependencies = ();
+			name = HelmTests;
+			productName = HelmTests;
+			productReference = E7B100000000000000000005 /* HelmTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
 
@@ -460,6 +496,7 @@
 			projectRoot = "";
 			targets = (
 				C3FA46FB13D0F8E200AC4F9B /* Helm */,
+				E7B100000000000000000007 /* HelmTests */,
 				C9CDB8F5270B673F007C2E77 /* Periphery */,
 				C9CDB900270D4DE7007C2E77 /* libgit2 */,
 			);
@@ -478,6 +515,12 @@
 				C93FFCAA1F0FD65100FDDD78 /* Defaults.plist in Resources */,
 				C9BD02FB226A275600172C0B /* Credits.rtf in Resources */,
 			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E7B10000000000000000000A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = ();
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
@@ -583,6 +626,15 @@
 				618153008918518A44229FE5 /* CustomActionsDialog.swift in Sources */,
 				16632F603F3B44E360177CEA /* HelmWindowController+CustomActions.swift in Sources */,
 				9FBD932BCAB2EDCF3111BFF7 /* SymbolGridPicker.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E7B100000000000000000008 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E7B100000000000000000001 /* WorkspaceEventBatcherTests.swift in Sources */,
+				E7B100000000000000000002 /* WorkspaceEventBatcher.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -991,6 +1043,44 @@
 			};
 			name = Release;
 		};
+		E7B10000000000000000000B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ENABLE_TESTING_SEARCH_PATHS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = group.soft.HelmIDE.Tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		E7B10000000000000000000C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ENABLE_TESTING_SEARCH_PATHS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = group.soft.HelmIDE.Tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+		E7B10000000000000000000D /* coverage */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ENABLE_TESTING_SEARCH_PATHS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = group.soft.HelmIDE.Tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = coverage;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1030,6 +1120,16 @@
 				C9CDB902270D4DE7007C2E77 /* Debug */,
 				C9CDB903270D4DE7007C2E77 /* coverage */,
 				C9CDB904270D4DE7007C2E77 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E7B10000000000000000000E /* Build configuration list for PBXNativeTarget "HelmTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E7B10000000000000000000B /* Debug */,
+				E7B10000000000000000000D /* coverage */,
+				E7B10000000000000000000C /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

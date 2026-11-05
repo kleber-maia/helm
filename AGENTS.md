@@ -6,7 +6,7 @@ This file provides guidance to AI coding agents when working with code in this r
 
 Helm (pronounced "exit") is a native macOS Git client written in Swift. It provides a visual interface for viewing and managing Git repositories, with a focus on stability, scalability with large repositories, and a well-organized codebase.
 
-The app is a hybrid **AppKit/SwiftUI** application that uses **libgit2** (via a C bridging header) for Git operations. It has no dedicated unit-test targets yet, though the architecture is designed for testability with extensive protocol-oriented fake implementations.
+The app is a hybrid **AppKit/SwiftUI** application that uses **libgit2** (via a C bridging header) for Git operations. It has a hostless XCTest target for workspace-event batching and extensive protocol-oriented fake implementations for repository behavior.
 
 ## Technology Stack
 
@@ -81,6 +81,7 @@ The project is an **Xcode project** (`Helm.xcodeproj`). It uses Xcode's modern `
 | Helm | Application | Main app target |
 | Periphery | Aggregate | Dead code detection (runs Periphery tool) |
 | libgit2 | Aggregate | Builds `libgit2-mac.a` from the `libgit2/` submodule |
+| HelmTests | Unit tests | Hostless workspace-event coalescing tests |
 
 ### Build Commands
 
@@ -94,9 +95,9 @@ git submodule update --init --recursive
 # Build the app from the repository root
 ./build.sh
 
-# Test invocation (no test targets currently exist)
+# Run the hostless unit tests
 xcodebuild -project Helm.xcodeproj -scheme Helm -configuration Debug \
-  -derivedDataPath build/DerivedData test
+  -derivedDataPath build/DerivedData -destination 'platform=macOS' test
 
 # Lint (runs automatically during Xcode build if SwiftLint is installed)
 swiftlint lint Helm/
@@ -240,13 +241,22 @@ The `@Faked` macro (from the `FakedMacro` package) auto-generates test doubles a
 
 ## Testing Strategy
 
-**Current state:** The project has no dedicated test targets or XCTest files. However, the architecture is designed for testability:
+**Current state:** `HelmTests/WorkspaceEventBatcherTests.swift` runs through the
+shared Helm scheme without launching the app. It compiles the production
+`WorkspaceEventBatcher.swift` source with a virtual scheduler and fake ignore
+rules, plus one real main-queue scheduling check. Critical timing tests cover
+both the helper default (250 ms) and workspace policy (one second). Repository fakes are also
+available:
 
 - The `@Faked` macro generates fake implementations for most repository protocols.
 - `Helm/Repository/Fakes.swift` and `FakeRepo.swift` provide manually maintained fake classes (`FakeRepo`, `FakeCommit`, `FakeLocalBranch`, `FakeRemoteBranch`, `FakeRemote`, etc.).
 - "Empty" protocols (`EmptyCommitReferencing`, `EmptyFileStaging`, etc.) allow composing minimal fakes.
 
-If adding tests, create a new **XCTest target** in the Xcode project and inject fake repositories instead of real `HelmRepository` instances. Include a happy-path test and at least one edge-case test where practical.
+Keep focused unit tests in the **HelmTests XCTest target**. It is hostless and
+shares only the small production batcher source; do not duplicate that source
+in test files. For future repository tests, inject fake repositories instead
+of real `HelmRepository` instances. Include a happy-path test and at least one
+edge-case test where practical.
 
 ## Security Considerations
 
