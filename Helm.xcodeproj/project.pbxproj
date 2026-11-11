@@ -38,6 +38,7 @@
 		618153008918518A44229FE5 /* CustomActionsDialog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44D9C14A30AC67A377AB568C /* CustomActionsDialog.swift */; };
 		6D487BE3B04E69D773BA136E /* MutexProtected.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89ED01725157F8CC6AFA9C37 /* MutexProtected.swift */; };
 		84F902A16B43F83AF2AE7BFE /* CustomActionsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73ED49E661794066334D9099 /* CustomActionsPanel.swift */; };
+		EA17B1A04C51497FA353F001 /* CustomActionsPersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA17B1A04C51497FA353F002 /* CustomActionsPersistence.swift */; };
 		85F803A8A7DF5756CB5CCF23 /* CustomAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92BA9D97FB74F5A384979B95 /* CustomAction.swift */; };
 		89039F561703A9FC000949A8 /* html in Resources */ = {isa = PBXBuildFile; fileRef = 89039F551703A9FC000949A8 /* html */; };
 		891260E8285D395900053528 /* ConfigValueWrappers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 891260E7285D395900053528 /* ConfigValueWrappers.swift */; };
@@ -103,6 +104,9 @@
 		E7B300000000000000000008 /* HelmDocumentCloseReply.m in Sources */ = {isa = PBXBuildFile; fileRef = E7B200000000000000000008 /* HelmDocumentCloseReply.m */; };
 		E7B300000000000000000009 /* TerminalProcessDirectoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B200000000000000000009 /* TerminalProcessDirectoryTests.swift */; };
 		E7B30000000000000000000A /* TerminalProcessDirectory.c in Sources */ = {isa = PBXBuildFile; fileRef = E7B20000000000000000000A /* TerminalProcessDirectory.c */; };
+		E7C100000000000000000001 /* ActionsPersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7C100000000000000000004 /* ActionsPersistenceTests.swift */; };
+		E7C100000000000000000002 /* CustomAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92BA9D97FB74F5A384979B95 /* CustomAction.swift */; };
+		E7C100000000000000000003 /* CustomActionsPersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA17B1A04C51497FA353F002 /* CustomActionsPersistence.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -152,6 +156,7 @@
 		89C2A7792E8AF84D00765D84 /* Helm.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; name = Helm.icon; path = Helm/Helm.icon; sourceTree = "<group>"; };
 		89ED01725157F8CC6AFA9C37 /* MutexProtected.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MutexProtected.swift; path = Helm/Utils/MutexProtected.swift; sourceTree = SOURCE_ROOT; };
 		89F411F428552A81009ECF7D /* DialogButtonRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DialogButtonRow.swift; sourceTree = "<group>"; };
+		EA17B1A04C51497FA353F002 /* CustomActionsPersistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomActionsPersistence.swift; sourceTree = "<group>"; };
 		92BA9D97FB74F5A384979B95 /* CustomAction.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CustomAction.swift; sourceTree = "<group>"; };
 		95D45656BBEBE3F3168D3425 /* QueueUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = QueueUtils.swift; path = Helm/Utils/QueueUtils.swift; sourceTree = SOURCE_ROOT; };
 		9BA229508B6017AB17EF719D /* CStringInterop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CStringInterop.swift; path = Helm/Utils/CStringInterop.swift; sourceTree = SOURCE_ROOT; };
@@ -213,6 +218,7 @@
 		E7B200000000000000000008 /* HelmDocumentCloseReply.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = HelmDocumentCloseReply.m; path = Helm/Document/HelmDocumentCloseReply.m; sourceTree = SOURCE_ROOT; };
 		E7B200000000000000000009 /* TerminalProcessDirectoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TerminalProcessDirectoryTests.swift; path = HelmTests/TerminalProcessDirectoryTests.swift; sourceTree = SOURCE_ROOT; };
 		E7B20000000000000000000A /* TerminalProcessDirectory.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = TerminalProcessDirectory.c; path = Helm/Terminal/TerminalProcessDirectory.c; sourceTree = SOURCE_ROOT; };
+		E7C100000000000000000004 /* ActionsPersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ActionsPersistenceTests.swift; path = HelmTests/ActionsPersistenceTests.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -259,6 +265,7 @@
 			isa = PBXGroup;
 			children = (
 				92BA9D97FB74F5A384979B95 /* CustomAction.swift */,
+				EA17B1A04C51497FA353F002 /* CustomActionsPersistence.swift */,
 				F0FDD823C5A148EF755FACBD /* CustomActionRunner.swift */,
 				73ED49E661794066334D9099 /* CustomActionsPanel.swift */,
 				44D9C14A30AC67A377AB568C /* CustomActionsDialog.swift */,
@@ -415,6 +422,7 @@
 		E7B100000000000000000006 /* HelmTests */ = {
 			isa = PBXGroup;
 			children = (
+				E7C100000000000000000004 /* ActionsPersistenceTests.swift */,
 				E7B100000000000000000003 /* WorkspaceEventBatcherTests.swift */,
 				E7B20000000000000000000A /* TerminalProcessDirectory.c */,
 				E7B200000000000000000009 /* TerminalProcessDirectoryTests.swift */,
@@ -651,6 +659,7 @@
 				897A1BCC26D0593300EC9B9D /* UIStringExtensions.swift in Sources */,
 				C9F5334D2187608300B2432C /* UIString.swift in Sources */,
 				85F803A8A7DF5756CB5CCF23 /* CustomAction.swift in Sources */,
+				EA17B1A04C51497FA353F001 /* CustomActionsPersistence.swift in Sources */,
 				97BDD61CACA59D8D84021566 /* CustomActionRunner.swift in Sources */,
 				84F902A16B43F83AF2AE7BFE /* CustomActionsPanel.swift in Sources */,
 				618153008918518A44229FE5 /* CustomActionsDialog.swift in Sources */,
@@ -663,6 +672,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E7C100000000000000000001 /* ActionsPersistenceTests.swift in Sources */,
+				E7C100000000000000000002 /* CustomAction.swift in Sources */,
+				E7C100000000000000000003 /* CustomActionsPersistence.swift in Sources */,
 				E7B100000000000000000001 /* WorkspaceEventBatcherTests.swift in Sources */,
 				E7B30000000000000000000A /* TerminalProcessDirectory.c in Sources */,
 				E7B300000000000000000009 /* TerminalProcessDirectoryTests.swift in Sources */,

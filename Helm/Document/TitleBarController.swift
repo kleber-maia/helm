@@ -401,60 +401,52 @@ extension TitleBarController
 {
   func updateCustomActionButton(repoPath: String)
   {
-    guard let item = customActionToolbarItem
-              as? NSMenuToolbarItem
-    else { return }
-
-    let actions = CustomActionsStore.actions(for: repoPath)
-
-    if let first = actions.first {
-      item.image = NSImage(
-          systemSymbolName: first.symbolName,
-          accessibilityDescription: first.name)
-          ?? NSImage(
-              systemSymbolName: "terminal",
-              accessibilityDescription: "Actions")
-      item.label = first.name
-      item.toolTip = first.name
+    guard let item = customActionToolbarItem as? NSMenuToolbarItem else { return }
+    item.target = window?.windowController
+    let snapshot: ActionsSnapshot
+    do { snapshot = try CustomActionsStore.load(for: repoPath) }
+    catch {
+      let menu = NSMenu()
+      let warning = NSMenuItem(title: "Actions could not be loaded", action: nil, keyEquivalent: "")
+      warning.isEnabled = false
+      warning.toolTip = error.localizedDescription
+      menu.addItem(warning)
+      menu.addItem(NSMenuItem(title: "Retry / Show Storage Error…",
+          action: #selector(HelmWindowController.configureActions(_:)), keyEquivalent: ""))
+      menu.items.forEach { $0.target = window?.windowController }
+      item.label = "Actions Unavailable"
+      item.toolTip = error.localizedDescription
+      item.menu = menu
+      item.image = HelmToolbarAppearance.symbol("exclamationmark.triangle", description: "Actions storage error")
+      return
     }
-    else {
-      item.image = NSImage(
-          systemSymbolName: "terminal",
-          accessibilityDescription: "Actions")
-      item.label = "Actions"
-      item.toolTip = "Custom Actions"
-    }
-
+    let actions = snapshot.actions
+    let image = actions.first.flatMap {
+      NSImage(systemSymbolName: $0.symbolName, accessibilityDescription: $0.name)
+    } ?? NSImage(systemSymbolName: "terminal", accessibilityDescription: "Actions")
+    item.label = actions.first?.name ?? "Actions"
+    item.toolTip = actions.first?.name ?? "Custom Actions — shared by repository worktrees"
     let menu = NSMenu()
-
     for (index, action) in actions.enumerated() {
-      let menuItem = NSMenuItem(
-          title: action.name,
-          action: #selector(
-              HelmWindowController.runCustomAction(_:)),
-          keyEquivalent: "")
-
-      menuItem.tag = index
-      menuItem.image = NSImage(
-          systemSymbolName: action.symbolName,
-          accessibilityDescription: action.name)
-      menu.addItem(menuItem)
+      let entry = NSMenuItem(title: action.name,
+          action: #selector(HelmWindowController.runCustomAction(_:)), keyEquivalent: "")
+      entry.tag = index
+      entry.representedObject = action.id
+      entry.image = NSImage(systemSymbolName: action.symbolName, accessibilityDescription: action.name)
+      menu.addItem(entry)
     }
-
-    if !actions.isEmpty {
-      menu.addItem(.separator())
+    if !actions.isEmpty { menu.addItem(.separator()) }
+    if snapshot.pendingConflicts > 0 {
+      menu.addItem(NSMenuItem(title: "Resolve Older Actions (\(snapshot.pendingConflicts))…",
+          action: #selector(HelmWindowController.recoverSavedActions(_:)), keyEquivalent: ""))
     }
-
-    let configItem = NSMenuItem(
-        title: actions.isEmpty
-            ? "+ Add Action…" : "Edit Actions…",
-        action: #selector(
-            HelmWindowController.configureActions(_:)),
-        keyEquivalent: "")
-
-    menu.addItem(configItem)
+    menu.addItem(NSMenuItem(title: actions.isEmpty ? "+ Add Action…" : "Edit Actions…",
+        action: #selector(HelmWindowController.configureActions(_:)), keyEquivalent: ""))
+    menu.items.forEach { $0.target = window?.windowController }
     item.menu = menu
+    item.image = HelmToolbarAppearance.image(image)
   }
+
 }
 
 private struct CodexBarUsageContext: Hashable

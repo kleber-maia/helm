@@ -4,6 +4,8 @@ class CustomActionsModel: ObservableObject, Validating
 {
   @Published var actions: [CustomAction]
   @Published var selectedID: UUID?
+  @Published var storageNotice = ""
+  @Published var storageError: String?
 
   @Published var isValid: Bool = true
 
@@ -67,13 +69,25 @@ struct CustomActionsPanel: DataModelView
 
   var body: some View
   {
-    HSplitView {
-      actionList
-        .frame(minWidth: 160, maxWidth: 200)
-      detailEditor
-        .frame(minWidth: 250)
+    VStack(alignment: .leading, spacing: 8) {
+      if !model.storageNotice.isEmpty {
+        Text(model.storageNotice).font(.callout).foregroundStyle(.secondary)
+          .fixedSize(horizontal: false, vertical: true)
+      }
+      HSplitView {
+        actionList.frame(minWidth: 160, maxWidth: 200)
+        detailEditor.frame(minWidth: 250)
+      }
+      .frame(height: 300)
+      ScrollView {
+        Text(model.storageError ?? " ").foregroundStyle(.red).font(.callout)
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .fixedSize(horizontal: false, vertical: true)
+          .textSelection(.enabled)
+      }
+      .frame(height: 52)
     }
-    .frame(width: 500, height: 300)
+    .frame(width: 540)
   }
 
   private var actionList: some View

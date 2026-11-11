@@ -336,7 +336,8 @@ extension HelmWindowController: NSMenuItemValidation
 
       case #selector(self.runDefaultAction(_:)),
            #selector(self.runCustomAction(_:)),
-           #selector(self.configureActions(_:)):
+           #selector(self.configureActions(_:)),
+           #selector(self.recoverSavedActions(_:)):
         result = true
 
       case #selector(self.performFindPanelAction(_:)):
