@@ -165,7 +165,8 @@ public final class GitLocalBranch: GitBranch, LocalBranch
       else { return nil }
       
       if remoteName == "." {
-        return LocalBranchRefName.named(mergeName)
+        // branch.<name>.merge already contains a fully qualified ref name.
+        return LocalBranchRefName(rawValue: mergeName)
       }
       else {
         guard let repo = git_reference_owner(branchRef),
@@ -198,6 +199,13 @@ public final class GitLocalBranch: GitBranch, LocalBranch
     })
     else { return nil }
     
+    // libgit2 also returns local refs for branch.<name>.remote = ".".
+    // This API promises a remote branch; never wrap a local ref as one.
+    guard git_reference_is_remote(upstream) == 1 else {
+      git_reference_free(upstream)
+      return nil
+    }
+
     return GitRemoteBranch(branch: upstream, config: config)
   }
   

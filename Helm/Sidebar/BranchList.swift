@@ -12,7 +12,8 @@ extension BranchListItem
 {
   var trackingIndicator: BranchTrackingIndicator
   {
-    guard trackingRefName != nil
+    // Local upstreams can have ahead/behind counts without a remote ref.
+    guard trackingRefName != nil || graphStatus.ahead > 0 || graphStatus.behind > 0
     else { return .none }
 
     guard graphStatus.ahead > 0 || graphStatus.behind > 0

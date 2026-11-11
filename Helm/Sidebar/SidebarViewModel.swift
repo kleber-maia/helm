@@ -358,10 +358,10 @@ final class SidebarViewModel<Brancher, Manager, Referencer, Stasher, Tagger, Sub
 
   private func branchStatus(_ branch: Brancher.LocalBranch) -> GraphStatus
   {
-    guard let trackingBranch = branch.trackingBranch,
+    guard let trackingName = branch.trackingBranchName,
           let status = referencer.graphBetween(
                 localBranch: branch.referenceName,
-                upstreamBranch: trackingBranch.referenceName)
+                upstreamBranch: trackingName)
     else { return .zero }
 
     return status
