@@ -93,6 +93,16 @@
 		FD3E756AD0AA7FFAE04EAD41 /* Signpost.swift in Sources */ = {isa = PBXBuildFile; fileRef = E445DE41CC87A67ABFDC1B72 /* Signpost.swift */; };
 		E7B100000000000000000001 /* WorkspaceEventBatcherTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B100000000000000000003 /* WorkspaceEventBatcherTests.swift */; };
 		E7B100000000000000000002 /* WorkspaceEventBatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B100000000000000000004 /* WorkspaceEventBatcher.swift */; };
+		E7B300000000000000000001 /* WorktreeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B200000000000000000001 /* WorktreeModel.swift */; };
+		E7B300000000000000000002 /* GitWorktreeCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B200000000000000000002 /* GitWorktreeCatalog.swift */; };
+		E7B300000000000000000003 /* RepositorySession.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B200000000000000000003 /* RepositorySession.swift */; };
+		E7B300000000000000000004 /* WorktreeLifecycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B200000000000000000004 /* WorktreeLifecycleTests.swift */; };
+		E7B300000000000000000005 /* WorktreeCatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B200000000000000000005 /* WorktreeCatalogTests.swift */; };
+		E7B300000000000000000006 /* RepositorySessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B200000000000000000006 /* RepositorySessionTests.swift */; };
+		E7B300000000000000000007 /* DocumentCloseCallbackTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B200000000000000000007 /* DocumentCloseCallbackTests.swift */; };
+		E7B300000000000000000008 /* HelmDocumentCloseReply.m in Sources */ = {isa = PBXBuildFile; fileRef = E7B200000000000000000008 /* HelmDocumentCloseReply.m */; };
+		E7B300000000000000000009 /* TerminalProcessDirectoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7B200000000000000000009 /* TerminalProcessDirectoryTests.swift */; };
+		E7B30000000000000000000A /* TerminalProcessDirectory.c in Sources */ = {isa = PBXBuildFile; fileRef = E7B20000000000000000000A /* TerminalProcessDirectory.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -193,6 +203,16 @@
 		E7B100000000000000000003 /* WorkspaceEventBatcherTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceEventBatcherTests.swift; sourceTree = "<group>"; };
 		E7B100000000000000000004 /* WorkspaceEventBatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WorkspaceEventBatcher.swift; path = Helm/Repository/WorkspaceEventBatcher.swift; sourceTree = SOURCE_ROOT; };
 		E7B100000000000000000005 /* HelmTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HelmTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E7B200000000000000000001 /* WorktreeModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WorktreeModel.swift; path = Helm/Document/WorktreeModel.swift; sourceTree = SOURCE_ROOT; };
+		E7B200000000000000000002 /* GitWorktreeCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = GitWorktreeCatalog.swift; path = Helm/Document/GitWorktreeCatalog.swift; sourceTree = SOURCE_ROOT; };
+		E7B200000000000000000003 /* RepositorySession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RepositorySession.swift; path = Helm/Document/RepositorySession.swift; sourceTree = SOURCE_ROOT; };
+		E7B200000000000000000004 /* WorktreeLifecycleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WorktreeLifecycleTests.swift; path = HelmTests/WorktreeLifecycleTests.swift; sourceTree = SOURCE_ROOT; };
+		E7B200000000000000000005 /* WorktreeCatalogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WorktreeCatalogTests.swift; path = HelmTests/WorktreeCatalogTests.swift; sourceTree = SOURCE_ROOT; };
+		E7B200000000000000000006 /* RepositorySessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = RepositorySessionTests.swift; path = HelmTests/RepositorySessionTests.swift; sourceTree = SOURCE_ROOT; };
+		E7B200000000000000000007 /* DocumentCloseCallbackTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DocumentCloseCallbackTests.swift; path = HelmTests/DocumentCloseCallbackTests.swift; sourceTree = SOURCE_ROOT; };
+		E7B200000000000000000008 /* HelmDocumentCloseReply.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = HelmDocumentCloseReply.m; path = Helm/Document/HelmDocumentCloseReply.m; sourceTree = SOURCE_ROOT; };
+		E7B200000000000000000009 /* TerminalProcessDirectoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = TerminalProcessDirectoryTests.swift; path = HelmTests/TerminalProcessDirectoryTests.swift; sourceTree = SOURCE_ROOT; };
+		E7B20000000000000000000A /* TerminalProcessDirectory.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = TerminalProcessDirectory.c; path = Helm/Terminal/TerminalProcessDirectory.c; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -396,6 +416,16 @@
 			isa = PBXGroup;
 			children = (
 				E7B100000000000000000003 /* WorkspaceEventBatcherTests.swift */,
+				E7B20000000000000000000A /* TerminalProcessDirectory.c */,
+				E7B200000000000000000009 /* TerminalProcessDirectoryTests.swift */,
+				E7B200000000000000000008 /* HelmDocumentCloseReply.m */,
+				E7B200000000000000000007 /* DocumentCloseCallbackTests.swift */,
+				E7B200000000000000000001 /* WorktreeModel.swift */,
+				E7B200000000000000000002 /* GitWorktreeCatalog.swift */,
+				E7B200000000000000000003 /* RepositorySession.swift */,
+				E7B200000000000000000004 /* WorktreeLifecycleTests.swift */,
+				E7B200000000000000000005 /* WorktreeCatalogTests.swift */,
+				E7B200000000000000000006 /* RepositorySessionTests.swift */,
 				E7B100000000000000000004 /* WorkspaceEventBatcher.swift */,
 			);
 			path = HelmTests;
@@ -634,6 +664,16 @@
 			buildActionMask = 2147483647;
 			files = (
 				E7B100000000000000000001 /* WorkspaceEventBatcherTests.swift in Sources */,
+				E7B30000000000000000000A /* TerminalProcessDirectory.c in Sources */,
+				E7B300000000000000000009 /* TerminalProcessDirectoryTests.swift in Sources */,
+				E7B300000000000000000008 /* HelmDocumentCloseReply.m in Sources */,
+				E7B300000000000000000007 /* DocumentCloseCallbackTests.swift in Sources */,
+				E7B300000000000000000001 /* WorktreeModel.swift in Sources */,
+				E7B300000000000000000002 /* GitWorktreeCatalog.swift in Sources */,
+				E7B300000000000000000003 /* RepositorySession.swift in Sources */,
+				E7B300000000000000000004 /* WorktreeLifecycleTests.swift in Sources */,
+				E7B300000000000000000005 /* WorktreeCatalogTests.swift in Sources */,
+				E7B300000000000000000006 /* RepositorySessionTests.swift in Sources */,
 				E7B100000000000000000002 /* WorkspaceEventBatcher.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1052,6 +1092,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = group.soft.HelmIDE.Tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "HelmTests/HelmTests-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
@@ -1065,6 +1106,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = group.soft.HelmIDE.Tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "HelmTests/HelmTests-Bridging-Header.h";
 			};
 			name = Release;
 		};
@@ -1077,6 +1119,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = group.soft.HelmIDE.Tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "HelmTests/HelmTests-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = coverage;
