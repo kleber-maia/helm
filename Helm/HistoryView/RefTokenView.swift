@@ -6,6 +6,7 @@ final class RefTokenView: NSView
   { didSet { invalidateIntrinsicContentSize() } }
   var type: RefType = .unknown
   var graphColor: NSColor?
+  var allowsHorizontalCompression = false
 
   override var intrinsicContentSize: NSSize
   {
@@ -33,7 +34,10 @@ final class RefTokenView: NSView
       for orientation: NSLayoutConstraint.Orientation)
     -> NSLayoutConstraint.Priority
   {
-    return .required
+    // The text already supports middle truncation. Allow native stack layout
+    // to shorten a token before clipping a stale full-width label across cells.
+    return allowsHorizontalCompression && orientation == .horizontal
+        ? .defaultLow : .required
   }
 
   override func draw(_ dirtyRect: NSRect)

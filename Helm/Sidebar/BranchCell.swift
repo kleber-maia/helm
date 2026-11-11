@@ -31,20 +31,23 @@ struct BranchCell<Item: PathTreeData,
     HStack(spacing: 4) {
       if branch == nil {
         Image(systemName: "folder.fill")
+          .sidebarIconTint()
           .frame(width: 16, alignment: .center)
       }
-      else {
+      else if isCurrent {
         Image("scm.branch")
+          .renderingMode(.template)
+          .sidebarIconTint()
           .fontWeight(.bold)
           .frame(width: 16, alignment: .center)
-          .opacity(isCurrent ? 1 : 0)
-          .accessibilityHidden(!isCurrent)
           .accessibilityElement()
           .axid(.Sidebar.currentBranchCheck)
       }
       branchTitle
       Spacer(minLength: 0)
-      trailingContent()
+      HStack(spacing: 4) { trailingContent() }
+        .fixedSize(horizontal: true, vertical: false)
+        .layoutPriority(1)
     }
       .frame(maxWidth: .infinity, alignment: .leading)
       .contentShape(Rectangle())
@@ -60,7 +63,6 @@ struct BranchCell<Item: PathTreeData,
       .lineLimit(1)
       .truncationMode(.tail)
       .help(node.path.lastPathComponent)
-      .padding(.horizontal, 4)
       .accessibilityIdentifier(isCurrent ? "currentBranch" : "branch")
   }
 

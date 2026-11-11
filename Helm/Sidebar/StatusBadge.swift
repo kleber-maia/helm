@@ -15,6 +15,7 @@ struct StatusBadge: View
       .background(tint ?? Color(nsColor: .controlColor))
       .clipShape(.capsule)
       .font(.system(size: 10))
+      .fixedSize(horizontal: true, vertical: false)
       .axid(axid ?? .init(rawValue: ""))
   }
 

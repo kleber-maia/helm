@@ -35,14 +35,18 @@ struct TabbedSidebar<Brancher, Manager, Referencer, Stasher, Tagger, SubManager>
           .allowsHitTesting(false)
       }
       List(selection: $listSelection) {
-        RecursiveDisclosureGroup(model.items,
+        RecursiveDisclosureGroup(model.items, sectioned: true,
                                  expandedItems: effectiveExpandedItems,
+                                 selectedTag: listSelection,
                                  tagForElement: { selectionTag(for: $0) }) {
           node in
           row(for: node)
         }
       }
         .axid(.Sidebar.tree)
+        .environment(\.defaultMinListRowHeight, 30)
+        .contentMargins(.horizontal, 0, for: .scrollContent)
+        .contentMargins(.top, 0, for: .scrollContent)
         .scrollContentBackground(.hidden)
         .contextMenu(forSelectionType: SidebarTreeSelection.self) { _ in
         } primaryAction: { selections in
@@ -90,9 +94,10 @@ struct TabbedSidebar<Brancher, Manager, Referencer, Stasher, Tagger, SubManager>
           listExpandedItems = coordinator.expandedItems
         }
     }
+      .environment(\.sidebarIconColor, coordinator.repositoryColor)
       .listStyle(.sidebar)
       .background(.clear)
-      .frame(minWidth: 200, maxWidth: .infinity)
+      .frame(minWidth: 180, maxWidth: .infinity)
       .accessibilityElement(children: .contain)
       .axid(.Sidebar.list)
   }
@@ -152,7 +157,7 @@ struct TabbedSidebar<Brancher, Manager, Referencer, Stasher, Tagger, SubManager>
     -> SidebarTreeSelection?
   {
     switch node.item {
-      case .section(let section): .section(section)
+      case .section: nil
       case .staging: .staging
       case .localBranch(let b): .localBranch(b.refName)
       case .remote(let name): .remote(name: name)
@@ -168,25 +173,35 @@ struct TabbedSidebar<Brancher, Manager, Referencer, Stasher, Tagger, SubManager>
   private func sectionRow(for section: SidebarTreeSection,
                           path: String) -> some View
   {
+    let expanded = effectiveExpandedItems.wrappedValue.contains(path)
     HStack(spacing: 4) {
-      HStack(spacing: 4) {
-        Image(systemName: section.systemImage)
-          .frame(width: 16, alignment: .center)
-        Text(section.title.rawValue)
-          .axid(section.axid)
-        Spacer()
-      }
-        .contentShape(Rectangle())
-        .onTapGesture {
-          toggleExpandedItem(path)
+      Button {
+        toggleExpandedItem(path)
+      } label: {
+        HStack(spacing: 4) {
+          Image(systemName: section.systemImage)
+            .sidebarIconTint()
+            .frame(width: 16, alignment: .center)
+          Text(section.title.rawValue)
+            .axid(section.axid)
+          Image(systemName: expanded ? "chevron.up" : "chevron.down")
+            .font(.system(size: NSFont.systemFontSize, weight: .regular))
+            .accessibilityHidden(true)
         }
+      }
+        .buttonStyle(.plain)
+        .accessibilityLabel(section.title.rawValue)
+        .accessibilityValue(expanded ? "Expanded" : "Collapsed")
+        .accessibilityAddTraits(.isHeader)
+      Spacer(minLength: 0)
       SidebarActionButton {
         sectionActionMenu(for: section)
       }
     }
-      .fontWeight(.semibold)
+      .font(.system(size: NSFont.systemFontSize, weight: .semibold))
       .foregroundStyle(.secondary)
       .contentShape(Rectangle())
+      .selectionDisabled(true)
       .listRowSeparator(.hidden)
   }
 
@@ -244,6 +259,7 @@ struct TabbedSidebar<Brancher, Manager, Referencer, Stasher, Tagger, SubManager>
   {
     HStack(spacing: 4) {
       Image(systemName: "network")
+            .sidebarIconTint()
         .frame(width: 16, alignment: .center)
       Text(remoteName)
       Spacer()
@@ -322,6 +338,7 @@ struct TabbedSidebar<Brancher, Manager, Referencer, Stasher, Tagger, SubManager>
   {
     HStack(spacing: 4) {
       Image(systemName: "folder.fill")
+            .sidebarIconTint()
         .frame(width: 16, alignment: .center)
       Text(name)
       Spacer()
@@ -676,6 +693,7 @@ private struct StagingRow: View
 
     HStack(spacing: 4) {
       Image(systemName: "checklist")
+        .sidebarIconTint()
         .frame(width: 16, alignment: .center)
         .foregroundStyle(highlightColor)
       Text(UIString.staging.rawValue)

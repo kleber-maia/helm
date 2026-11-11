@@ -15,6 +15,8 @@ struct RecursiveDisclosureGroup<Data, ID, TagValue, RowContent>: View
   let expandedItems: Binding<Set<ID>>
   let tagForElement: (DataElement) -> TagValue?
   let content: (DataElement) -> RowContent
+  var sectioned = false
+  var selectedTag: TagValue? = nil
 
   var body: some View
   {
@@ -24,8 +26,8 @@ struct RecursiveDisclosureGroup<Data, ID, TagValue, RowContent>: View
       (row) in
       let rowView = HStack(spacing: 0) {
         content(row.element)
-        Spacer(minLength: 4)
-        if row.hasChildren {
+          .frame(maxWidth: .infinity, alignment: .leading)
+        if row.hasChildren && !(sectioned && row.level == 0) {
           let binding = expandedItems.binding(for: row.id)
 
           Image(systemName: "chevron.right")
@@ -38,8 +40,18 @@ struct RecursiveDisclosureGroup<Data, ID, TagValue, RowContent>: View
             .onTapGesture { binding.wrappedValue.toggle() }
         }
       }
-        .padding(.leading, CGFloat(row.level) * 12)
-        .listRowInsets(EdgeInsets())
+        .environment(\.sidebarIconSelected, row.tagValue != nil && row.tagValue == selectedTag)
+        // The synthetic group itself is not an indentation level.
+        .padding(.leading, CGFloat(max(0, row.level - (sectioned ? 1 : 0))) * 12)
+        .frame(minHeight: 24, alignment: .center)
+        .listRowInsets(EdgeInsets(
+            // One restrained 8pt group gap; all ordinary rows have symmetric
+            // 3pt top/bottom insets whether selected or not.
+            top: sectioned && row.level == 0 && row.tagValue == nil && row.id != flat.first?.id ? 11 : 3,
+            leading: 0, bottom: 3, trailing: 0))
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+        .selectionDisabled(sectioned && row.level == 0 && row.tagValue == nil)
 
       tagValue(rowView, row.tagValue)
     }
@@ -108,7 +120,9 @@ extension RecursiveDisclosureGroup
 {
   init<Item: PathTreeData>(
       _ data: Data,
+      sectioned: Bool = false,
       expandedItems: Binding<Set<String>>,
+      selectedTag: TagValue? = nil,
       tagForElement: @escaping (DataElement) -> TagValue?,
       @ViewBuilder content: @escaping (DataElement) -> RowContent)
     where Data == [PathTreeNode<Item>], ID == String
@@ -116,6 +130,8 @@ extension RecursiveDisclosureGroup
     self.data = data
     self.id = \.path
     self.children = \.children
+    self.sectioned = sectioned
+    self.selectedTag = selectedTag
     self.expandedItems = expandedItems
     self.tagForElement = tagForElement
     self.content = content

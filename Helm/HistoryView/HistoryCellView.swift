@@ -6,6 +6,7 @@ final class HistoryCellView: NSTableCellView
   private var entry: CommitEntry<GitCommit>!
   private var currentBranch: LocalBranchRefName?
   private var refs = [String]()
+  private var refTokenWidths: [(RefTokenView, NSLayoutConstraint)] = []
   private(set) var popoverMessage: String?
 
   var mutex: NSRecursiveLock!
@@ -53,7 +54,7 @@ final class HistoryCellView: NSTableCellView
     super.awakeFromNib()
 
     wantsLayer = true
-    layer?.masksToBounds = false
+    updateRefClipping()
 
     labelField?.usesSingleLineMode = true
     labelField?.lineBreakMode = .byTruncatingTail
@@ -61,7 +62,81 @@ final class HistoryCellView: NSTableCellView
   }
 
   var displayMode: DisplayMode = .all
-  { didSet { updateConstraints() } }
+  { didSet {
+    updateRefClipping()
+    if displayMode != .refsOnly { clearRefTokenWidths() }
+    updateConstraints()
+  } }
+
+  /// Graph-only cells intentionally draw through vertical row spacing.
+  /// The separate Refs column must never inherit that overflow permission.
+  private func updateRefClipping()
+  {
+    let refsOnly = displayMode == .refsOnly
+    clipsToBounds = refsOnly
+    layer?.masksToBounds = refsOnly
+    stackView?.clipsToBounds = refsOnly
+  }
+
+  private func invalidateRefLayout()
+  {
+    guard displayMode == .refsOnly else { return }
+    stackView?.needsUpdateConstraints = true
+    stackView?.needsLayout = true
+    needsUpdateConstraints = true
+    needsLayout = true
+    needsDisplay = true
+  }
+
+  override func setFrameSize(_ newSize: NSSize)
+  {
+    let widthChanged = frame.width != newSize.width
+    super.setFrameSize(newSize)
+    if widthChanged { invalidateRefLayout() }
+  }
+
+  override func viewDidMoveToWindow()
+  {
+    super.viewDidMoveToWindow()
+    // A retained table cell may reattach after its tab's width changed.
+    invalidateRefLayout()
+  }
+
+  private func clearRefTokenWidths()
+  {
+    NSLayoutConstraint.deactivate(refTokenWidths.map { $0.1 })
+    refTokenWidths.removeAll()
+  }
+
+  /// Allocate the CURRENT column budget, keeping short labels at intrinsic
+  /// width and sharing remaining space between longer labels. Drawing retains
+  /// RefTokenView's existing middle-ellipsis behavior, order and colors.
+  private func updateRefTokenWidths()
+  {
+    guard displayMode == .refsOnly, !refTokenWidths.isEmpty else { return }
+    let insets = stackView.edgeInsets
+    let gaps = CGFloat(max(0, stackView.arrangedSubviews.count - 1)) * stackView.spacing
+    var remaining = max(0, bounds.width - insets.left - insets.right - gaps)
+    var count = refTokenWidths.count
+    var cap: CGFloat = 0
+    let natural = refTokenWidths.map { max(0, $0.0.intrinsicContentSize.width) }
+    for width in natural.sorted() {
+      cap = remaining / CGFloat(count)
+      if width >= cap { break }
+      remaining -= width
+      count -= 1
+    }
+    for (index, pair) in refTokenWidths.enumerated() {
+      let width = min(natural[index], cap)
+      if abs(pair.1.constant - width) > 0.01 { pair.1.constant = width }
+    }
+  }
+
+  override func layout()
+  {
+    updateRefTokenWidths()
+    super.layout()
+  }
 
   var deemphasized: Bool = false
   { didSet { updateTextColor() } }
@@ -112,6 +187,7 @@ final class HistoryCellView: NSTableCellView
     setLabel(entry.commit.message ?? "(no message)")
     self.entry = entry
 
+    clearRefTokenWidths()
     var views: [NSView] = []
 
     if displayMode.showRefs {
@@ -130,6 +206,8 @@ final class HistoryCellView: NSTableCellView
       views.append(contentsOf: refs.reversed().map {
         (ref) -> NSView in
         let view = RefTokenView()
+
+        view.allowsHorizontalCompression = displayMode == .refsOnly
 
         if let (typeName, name) = ref.splitRefName() {
           var displayName = name
@@ -157,12 +235,19 @@ final class HistoryCellView: NSTableCellView
       spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
       views.insert(spacer, at: 0)
       stackView.setViews(views, in: .leading)
+      for token in views.compactMap({ $0 as? RefTokenView }) {
+        let width = token.widthAnchor.constraint(equalToConstant: token.intrinsicContentSize.width)
+        refTokenWidths.append((token, width))
+        width.isActive = true
+      }
+      updateRefTokenWidths()
     }
     else {
       stackView.setViews(views, in: .leading)
     }
     stackView.needsLayout = true
     needsUpdateConstraints = true
+    invalidateRefLayout()
   }
   
   /// Finds the center of the given column.
@@ -174,6 +259,7 @@ final class HistoryCellView: NSTableCellView
   /// Moves the text field out of the way of the lines and refs.
   override func updateConstraints()
   {
+    updateRefTokenWidths()
     switch displayMode {
       case .refsOnly:
         stackViewInset.constant = 0

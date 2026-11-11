@@ -62,6 +62,15 @@ final class TabbedSidebarController: NSHostingController<AnyView>
       .environmentObject(accessories)
 
     super.init(rootView: AnyView(view))
+    updateRepositoryColor()
+    notificationObservers.append(NotificationCenter.default.addObserver(
+        forName: .sidebarRepositoryColorDidChange, object: nil, queue: .main) {
+      [weak self] note in
+      MainActor.assumeIsolated {
+        guard let self, note.object as? String == self.controller?.repoDocument?.worktreeBinding?.record.repositoryID else { return }
+        self.updateRepositoryColor()
+      }
+    })
     coordinator.delegate = self
     observeSidebarSelection(repo: repo)
   }
@@ -69,6 +78,14 @@ final class TabbedSidebarController: NSHostingController<AnyView>
   required dynamic init?(coder: NSCoder)
   {
     fatalError("init(coder:) has not been implemented")
+  }
+
+  private func updateRepositoryColor()
+  {
+    guard let common = controller?.repoDocument?.worktreeBinding?.record.repositoryID,
+          let workspace = (NSDocumentController.shared as? HelmDocumentController)?.worktrees else { return }
+    let color = workspace.color(for: common)
+    if coordinator.repositoryColor != color { coordinator.repositoryColor = color }
   }
 
   override func viewDidLoad()
