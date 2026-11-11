@@ -6,7 +6,7 @@ This file provides guidance to AI coding agents when working with code in this r
 
 Helm (pronounced "exit") is a native macOS Git client written in Swift. It provides a visual interface for viewing and managing Git repositories, with a focus on stability, scalability with large repositories, and a well-organized codebase.
 
-The app is a hybrid **AppKit/SwiftUI** application that uses **libgit2** (via a C bridging header) for Git operations. It has a hostless XCTest target for workspace-event batching and extensive protocol-oriented fake implementations for repository behavior.
+The app is a hybrid **AppKit/SwiftUI** application that uses **libgit2** (via a C bridging header) for Git operations. It has a hostless XCTest target for worktree/session lifecycle and workspace-event batching and extensive protocol-oriented fake implementations for repository behavior.
 
 ## Technology Stack
 
@@ -81,7 +81,7 @@ The project is an **Xcode project** (`Helm.xcodeproj`). It uses Xcode's modern `
 | Helm | Application | Main app target |
 | Periphery | Aggregate | Dead code detection (runs Periphery tool) |
 | libgit2 | Aggregate | Builds `libgit2-mac.a` from the `libgit2/` submodule |
-| HelmTests | Unit tests | Hostless workspace-event coalescing tests |
+| HelmTests | Unit tests | Hostless worktree/session lifecycle, process CWD and workspace-event tests |
 
 ### Build Commands
 
@@ -124,11 +124,12 @@ swiftlint lint Helm/
   open "$PWD/build/DerivedData/Build/Products/Debug/Helm.app"
   ```
 
-- Verify the running executable path before checking behavior. In Activity
-  Monitor, search for Helm and double-click its main process; Executable Path
-  must end in `build/DerivedData/Build/Products/Debug/Helm.app/Contents/MacOS/Helm`
-  under this checkout. Launch by explicit path; `open -a Helm` or a Dock icon
-  can select another copy.
+- Verify the running executable path from the command line before checking
+  behavior, for example with `ps -axo pid,ppid,comm`. It must point to the
+  exact built app. Do not use Activity Monitor to inspect or stop task apps.
+  Command-line builds do not need the Xcode GUI. Quit task-owned apps normally
+  after preserving sessions, then confirm their process exited; do not stop
+  unrelated work or force-discard unsaved documents.
 - Report build success and observed UI verification separately. If the app
   was not relaunched and checked, say so; do not claim the running app contains
   the fix based only on a successful build or an isolated AppKit check.
@@ -239,13 +240,31 @@ The `@Faked` macro (from the `FakedMacro` package) auto-generates test doubles a
 
 `Helm/Operations/` contains `OperationController` subclasses that encapsulate complex user workflows (stash, reset, merge, clean, clone, fetch, pull, push, etc.). The typical pattern is: dialog → model validation → `OperationController` execution.
 
+## User Review Workflow
+
+1. Implement the requested change and verify it visibly against the user's
+   request. Present the current build and clearly identify any visual checks
+   that remain blocked.
+2. Wait for the user's approval before simplification, writing or running
+   automated tests, and pre-commit code review. Existing test results do not
+   substitute for request-based visual verification.
+3. After that approval, simplify, test and review before any separately
+   authorized commit or merge. Do not commit, merge, push or publish merely
+   because the review build exists.
+
 ## Testing Strategy
 
-**Current state:** `HelmTests/WorkspaceEventBatcherTests.swift` runs through the
-shared Helm scheme without launching the app. It compiles the production
-`WorkspaceEventBatcher.swift` source with a virtual scheduler and fake ignore
-rules, plus one real main-queue scheduling check. Critical timing tests cover
-both the helper default (250 ms) and workspace policy (one second). Repository fakes are also
+**Current state:** `HelmTests` runs through the shared Helm scheme without
+launching the app. It compiles the small production worktree models/catalog,
+session store, documented close-callback bridge, owned-child CWD helper and
+workspace batcher. Tests cover identity/inventory, primary ordering, safe
+removal/transfer planning, unavailable-session retention, close cancellation,
+restoration, colors and actual owned-child process-directory identity. Native
+tab/controller adoption and real app Quit/relaunch require separate UI QA.
+The batcher tests use a virtual scheduler, fake ignore rules and one real
+main-queue scheduling check, covering both 250 ms and one-second windows.
+
+Repository fakes are also
 available:
 
 - The `@Faked` macro generates fake implementations for most repository protocols.
@@ -253,7 +272,7 @@ available:
 - "Empty" protocols (`EmptyCommitReferencing`, `EmptyFileStaging`, etc.) allow composing minimal fakes.
 
 Keep focused unit tests in the **HelmTests XCTest target**. It is hostless and
-shares only the small production batcher source; do not duplicate that source
+shares only focused production models/helpers; do not duplicate that source
 in test files. For future repository tests, inject fake repositories instead
 of real `HelmRepository` instances. Include a happy-path test and at least one
 edge-case test where practical.

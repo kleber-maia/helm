@@ -41,7 +41,7 @@ No manual Xcode location setup is needed. The script also keeps intermediate
 files and package checkouts in `build/DerivedData`; direct builds may use
 Xcode's default cache locations for those files.
 
-SwiftTerm 1.99.1 includes a build-tool plugin that generates version and
+SwiftTerm 1.99.3 includes a build-tool plugin that generates version and
 terminal-capability information. If Xcode reports that
 `SwiftTermBuildInfoPlugin` must be enabled, trust and enable that plugin in
 Xcode before building from the command line.
