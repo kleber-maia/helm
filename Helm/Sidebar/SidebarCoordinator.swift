@@ -115,6 +115,8 @@ final class SidebarCoordinator: ObservableObject
   /// Current selection in the unified sidebar tree.
   @Published var selection: SidebarTreeSelection?
 
+  @Published var repositoryColor: NSColor = .controlAccentColor
+
   /// Graph line color of the HEAD commit, updated by the history view.
   @Published var headGraphColor: Color = Color(nsColor:
       HistoryCellView.lineColors[0])
@@ -179,4 +181,9 @@ final class SidebarCoordinator: ObservableObject
   {
     delegate?.reselect(selection)
   }
+}
+
+extension Notification.Name
+{
+  static let sidebarRepositoryColorDidChange = Notification.Name("Helm.sidebarRepositoryColorDidChange")
 }

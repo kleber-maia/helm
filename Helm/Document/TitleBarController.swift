@@ -46,6 +46,7 @@ class TitleBarController: NSObject
 
   var separatorItem: NSToolbarItem?
   private var stashToolbarItem: NSToolbarItem?
+  private var sidebarNavigationView: NSStackView?
   
   private var newBranchToolbarItem: NSToolbarItem?
   private var customActionToolbarItem: NSToolbarItem?
@@ -479,6 +480,7 @@ extension NSToolbarItem.Identifier
   static let searchNext: Self = ◊"helm.searchNext"
   
   static let newBranch: Self = ◊"helm.newBranch"
+  static let worktrees: Self = ◊"helm.worktrees"
   static let customAction: Self = ◊"helm.customAction"
   static let codingAgentUsageGroup: Self = ◊"helm.codingAgentUsageGroup"
   static let codingAgent: Self = ◊"helm.codingAgent"
@@ -488,14 +490,89 @@ extension NSToolbarItem.Identifier
 
 extension TitleBarController: NSToolbarDelegate
 {
+  func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar)
+      -> [NSToolbarItem.Identifier]
+  {
+    let existing = toolbar.items.map(\.itemIdentifier)
+    let otherItems: [NSToolbarItem.Identifier] = existing.isEmpty
+        ? [.remoteOps, .stash, .flexibleSpace, .spinner,
+           .searchPrevious, .searchNext, .search]
+        : existing.filter {
+          $0 != .sidebarTrackingSeparator && $0 != .toggleSidebar &&
+          $0 != .navigation
+        }
+
+    // AppKit uses this order for navigational items even when items were
+    // inserted or restored in a different physical toolbar.items order.
+    return [.sidebarTrackingSeparator, .navigation] + otherItems
+  }
+
+  func installSidebarBesideNavigation(in toolbar: NSToolbar)
+  {
+    guard let item = toolbar.items.first(where: {
+      $0.itemIdentifier == .navigation
+    }), let navigation = navButtons else { return }
+
+    if let controls = sidebarNavigationView,
+       controls.arrangedSubviews.contains(where: { $0 === navigation }) {
+      item.view = controls
+      return
+    }
+    let button = NSButton(image: HelmToolbarAppearance.symbol("sidebar.left",
+        description: "Show or hide sidebar")!,
+        target: window?.windowController,
+        action: #selector(HelmWindowController.showHideSidebar(_:)))
+
+    button.bezelStyle = .texturedRounded
+    button.controlSize = .regular
+    button.toolTip = "Show or hide the pinned sidebar"
+    button.setAccessibilityLabel("Show or hide sidebar")
+    button.setAccessibilityIdentifier("helm.sidebarToggle")
+    // Center the glyph in a real control hit area, not against the shared pill.
+    button.widthAnchor.constraint(greaterThanOrEqualToConstant: 30).isActive = true
+    let controls = NSStackView(views: [button, navigation])
+
+    controls.orientation = .horizontal
+    controls.alignment = .centerY
+    controls.spacing = 8
+    controls.edgeInsets = NSEdgeInsets(top: 2, left: 6, bottom: 2, right: 4)
+    sidebarNavigationView = controls
+    // AppKit may move a navigational item, but cannot reorder these children.
+    item.view = controls
+    let size = controls.fittingSize
+
+    item.minSize = size
+    item.maxSize = size
+  }
+
   func toolbar(_ toolbar: NSToolbar,
                itemForItemIdentifier itemIdentifier: NSToolbarItem.Identifier,
                willBeInsertedIntoToolbar flag: Bool) -> NSToolbarItem?
   {
+    if itemIdentifier == .toggleSidebar {
+      let item = NSToolbarItem(itemIdentifier: itemIdentifier)
+
+      // Navigation is placed outside ordinary toolbar order by AppKit.
+      // Put both controls in that group, with explicit default ordering below.
+      item.isNavigational = true
+      item.label = "Sidebar"
+      item.paletteLabel = "Show or Hide Sidebar"
+      item.toolTip = "Show or hide the pinned sidebar"
+      item.image = NSImage(systemSymbolName: "sidebar.left",
+                           accessibilityDescription: "Show or hide sidebar")
+      item.target = window?.windowController
+      item.action = #selector(HelmWindowController.showHideSidebar(_:))
+      item.isBordered = true
+      return item
+    }
     if itemIdentifier == .sidebarTrackingSeparator {
       // Return the saved item to avoid Cocoa throwing exceptions about only
       // one tracking item being allowed.
       return separatorItem
+    }
+    if itemIdentifier == .worktrees {
+      return (window?.windowController as? HelmWindowController)?
+        .makeWorktreesToolbarItem()
     }
     if itemIdentifier == .newBranch {
       let item = NSToolbarItem(itemIdentifier: .newBranch)
@@ -503,9 +580,8 @@ extension TitleBarController: NSToolbarDelegate
       item.label = "New Branch"
       item.paletteLabel = "New Branch"
       item.toolTip = "New Branch"
-      item.image = NSImage(
-          systemSymbolName: "arrow.triangle.branch",
-          accessibilityDescription: "New Branch")
+      item.image = HelmToolbarAppearance.symbol("arrow.triangle.branch",
+                                                description: "New Branch")
       item.isBordered = true
       item.target = nil
       item.action = #selector(
@@ -525,6 +601,7 @@ extension TitleBarController: NSToolbarDelegate
       item.isBordered = true
       item.showsIndicator = true
       item.menu = NSMenu()
+      item.image = HelmToolbarAppearance.symbol("terminal", description: "Actions")
       item.target = nil
       item.action = #selector(
           HelmWindowController.runDefaultAction(_:))
@@ -562,7 +639,9 @@ extension TitleBarController: NSToolbarDelegate
     
     switch item.itemIdentifier {
       case .navigation:
-        navButtons = item.view as? NSSegmentedControl
+        if let buttons = item.view as? NSSegmentedControl {
+          navButtons = buttons
+        }
         
       case .spinner:
         spinner = item.view as? NSProgressIndicator
@@ -713,11 +792,11 @@ extension TitleBarController
   private func updateCodingAgentItem(_ item: NSMenuToolbarItem)
   {
     let agent = currentCodingAgent
-    item.image = agent.image
     item.label = agent.displayName
     item.paletteLabel = "Coding Agent"
     item.toolTip = "Coding Agent: \(agent.displayName)"
     item.menu = makeCodingAgentMenu()
+    item.image = HelmToolbarAppearance.image(agent.image)
   }
 
   func refreshCodingAgentItem()
@@ -1016,5 +1095,37 @@ extension TitleBarController: NSSearchFieldDelegate
     searchText = ""
     sender.stringValue = ""
     updateSearchControls()
+  }
+}
+
+
+/// Use native toolbar controls for their own padding; normalize only the
+/// symbol optical size so custom items do not inherit unrelated image metrics.
+enum HelmToolbarAppearance
+{
+  static func image(_ image: NSImage?) -> NSImage?
+  {
+    guard let image else { return nil }
+    let configuration = NSImage.SymbolConfiguration(pointSize: 16,
+        weight: .regular, scale: .medium)
+    let symbol = image.withSymbolConfiguration(configuration) ?? image
+    // Keep the glyph's optical size; let the native control size itself around
+    // a vector image with the same breathing room on every added toolbar item.
+    let inset = NSSize(width: 4, height: 2)
+    let size = NSSize(width: symbol.size.width + inset.width * 2,
+                      height: symbol.size.height + inset.height * 2)
+    let padded = NSImage(size: size, flipped: false) { _ in
+      symbol.draw(in: NSRect(origin: NSPoint(x: inset.width, y: inset.height),
+                             size: symbol.size))
+      return true
+    }
+    padded.isTemplate = symbol.isTemplate
+    padded.accessibilityDescription = symbol.accessibilityDescription
+    return padded
+  }
+
+  static func symbol(_ name: String, description: String) -> NSImage?
+  {
+    image(NSImage(systemSymbolName: name, accessibilityDescription: description))
   }
 }

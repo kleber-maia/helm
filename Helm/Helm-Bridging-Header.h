@@ -7,3 +7,7 @@
 
 #import <git2.h>
 #import <git2/sys/config.h>
+
+#import "Terminal/TerminalProcessDirectory.h"
+
+#import "Document/HelmDocumentCloseReply.h"

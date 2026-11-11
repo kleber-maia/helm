@@ -3,6 +3,15 @@ import AppKit
 class RepoDocument: NSDocument
 {
   private(set) var repository: HelmRepository! = nil
+  var sessionID = UUID()
+  var terminalDirectoryURL: URL?
+  var worktreeBinding: WorktreeBinding?
+  var worktreeRemovalPending = false
+  var closeDecisionPending = false
+  var closeApproved = false
+  var windowController: HelmWindowController? {
+    windowControllers.first as? HelmWindowController
+  }
 
   // Don't allow creating an untitled document
   convenience init(type typeName: String) throws
@@ -51,13 +60,51 @@ class RepoDocument: NSDocument
                          shouldClose shouldCloseSelector: Selector?,
                          contextInfo: UnsafeMutableRawPointer?)
   {
-    if let controller = windowControllers.first as? HelmWindowController {
-      controller.shutDown()
+    if worktreeRemovalPending {
+      HelmReplyToDocumentClose(delegate as AnyObject, shouldCloseSelector,
+                               self, false, contextInfo)
+      return
     }
+    let workspace = (NSDocumentController.shared as? HelmDocumentController)?.worktrees
+    let controller = windowController
+    let decision = WorktreeClosePolicy.decision(
+        runningTerminal: controller?.terminalIsRunning == true,
+        busyOperation: controller?.currentOperation != nil || controller?.repoController?.queue.isBusy == true,
+        terminationApproved: workspace?.isTerminating == true)
+    if decision == .confirm {
+      closeDecisionPending = true
+      let alert = NSAlert()
+      alert.messageText = "Close this tab and stop its running work?"
+      alert.informativeText = "The terminal or Git operation is still running. The worktree and branch will not be deleted."
+      alert.addButton(withTitle: "Keep Open")
+      alert.addButton(withTitle: "Close and Stop")
+      let allowed = alert.runModal() == .alertSecondButtonReturn
+      closeDecisionPending = false
+      if !allowed {
+        HelmReplyToDocumentClose(delegate as AnyObject, shouldCloseSelector,
+                                 self, false, contextInfo)
+        workspace?.retryPending(self)
+        return
+      }
+    }
+    closeApproved = true
+    controller?.terminalPanelController?.suspendAutomaticStart()
+    controller?.shutDown()
 
     super.canClose(withDelegate: delegate,
                    shouldClose: shouldCloseSelector,
                    contextInfo: contextInfo)
+  }
+
+  override func close()
+  {
+    closeApproved = true
+    windowController?.terminalPanelController?.suspendAutomaticStart()
+    (NSDocumentController.shared as? HelmDocumentController)?
+      .sessions.willClose(self)
+    windowController?.shutDown()
+    windowController?.terminalPanelController?.terminalController.stopIfRunning()
+    super.close()
   }
 
   override func updateChangeCount(_ change: NSDocument.ChangeType)

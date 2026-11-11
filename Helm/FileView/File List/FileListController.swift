@@ -186,6 +186,11 @@ class FileListController: NSViewController, RepositoryWindowViewController
 
   func performFileMutation(_ mutation: @escaping () throws -> Void)
   {
+    if let controller = repoUIController as? HelmWindowController,
+       controller.worktreeTransitionPending {
+      controller.showErrorMessage(error: .worktreeContextMismatch)
+      return
+    }
     guard let queue = repoUIController?.repoController.queue
     else { return }
 

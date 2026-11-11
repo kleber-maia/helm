@@ -302,7 +302,18 @@ extension HelmWindowController: NSMenuItemValidation
     let result: Bool
     
     switch action {
-      
+      case #selector(self.showHideSidebar(_:)):
+        menuItem.title = splitViewController.splitViewItems.first?.isCollapsed == true
+            ? "Show Sidebar" : "Hide Sidebar"
+        result = true
+
+      case #selector(self.showHideTerminal(_:)):
+        let item = terminalPanelController.flatMap {
+          splitViewController.splitViewItem(for: $0)
+        }
+        menuItem.title = item?.isCollapsed == true ? "Show Terminal" : "Hide Terminal"
+        result = item != nil
+
       case #selector(self.goBack(_:)):
         result = !navBackStack.isEmpty
 

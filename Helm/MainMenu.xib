@@ -439,6 +439,12 @@ DQ
                                     <action selector="showHideSidebar:" target="-1" id="a3N-YJ-Rba"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="Show Terminal" id="HmT-Er-Mnl">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="showHideTerminal:" target="-1" id="HmT-Er-Act"/>
+                                </connections>
+                            </menuItem>
                             <menuItem isSeparatorItem="YES" id="gUR-ax-6Z6"/>
                             <menuItem title="Vertical Layout" secondaryImage="rectangle.split.1x2" catalog="system" id="uO6-Mj-4Y9">
                                 <modifierMask key="keyEquivalentModifierMask"/>

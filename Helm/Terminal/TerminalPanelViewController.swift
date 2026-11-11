@@ -8,11 +8,15 @@ final class TerminalPanelViewController: NSViewController
   private var collapseObserver: NSKeyValueObservation?
   private var startTimer: Timer?
   private var isWindowMain = false
+  private var automaticStart = true
+  private var startButton: NSButton?
 
-  init(workingDirectory: String, agent: CodingAgent = .terminal)
+  init(workingDirectory: String, agent: CodingAgent = .terminal,
+       automaticStart: Bool = true)
   {
     self.terminalController = TerminalViewController(workingDirectory: workingDirectory,
                                                      agent: agent)
+    self.automaticStart = automaticStart
     super.init(nibName: nil, bundle: nil)
   }
 
@@ -26,6 +30,7 @@ final class TerminalPanelViewController: NSViewController
   override func viewDidLoad()
   {
     super.viewDidLoad()
+    terminalController.geometryReady = { [weak self] in self?.startIfVisible() }
     addChild(terminalController)
     terminalController.view.translatesAutoresizingMaskIntoConstraints = false
     view.addSubview(terminalController.view)
@@ -36,6 +41,18 @@ final class TerminalPanelViewController: NSViewController
       terminalController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
     ])
     observeCollapseState()
+    if !automaticStart {
+      let button = NSButton(title: "Start New Terminal", target: self,
+                            action: #selector(startNewTerminal(_:)))
+      button.translatesAutoresizingMaskIntoConstraints = false
+      button.setAccessibilityLabel("Terminal moved to another worktree. Start a new terminal here")
+      view.addSubview(button)
+      NSLayoutConstraint.activate([
+        button.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+        button.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+      ])
+      startButton = button
+    }
   }
 
   override func viewDidAppear()
@@ -47,9 +64,18 @@ final class TerminalPanelViewController: NSViewController
     startIfVisible()
   }
 
+  override func viewDidLayout()
+  {
+    super.viewDidLayout()
+    // A start deferred for zero/detached/live-resize geometry retries only
+    // when native layout supplies another opportunity, never by polling.
+    if !terminalController.hasStartedProcess { startIfVisible() }
+  }
+
   /// Called by HelmWindowController when the terminal panel is expanded.
   func becomeTerminalFirstResponder()
   {
+    if !automaticStart { startNewTerminal(nil) }
     terminalController.focusTerminal()
   }
 
@@ -57,6 +83,7 @@ final class TerminalPanelViewController: NSViewController
   func windowDidBecomeMain()
   {
     isWindowMain = true
+    terminalController.requestGeometrySynchronization(phase: "activation", force: true)
     startIfVisible()
   }
 
@@ -77,9 +104,15 @@ final class TerminalPanelViewController: NSViewController
     terminalController.removeFromParent()
 
     let newController = TerminalViewController(
-        workingDirectory: terminalController.workingDirectory,
+        workingDirectory: terminalController.restartDirectory,
         agent: agent,
         shell: terminalController.shell)
+    newController.directoryChanged = terminalController.directoryChanged
+    newController.sessionStateChanged = terminalController.sessionStateChanged
+    newController.geometryReady = terminalController.geometryReady
+    if let bound = terminalController.boundWorkingDirectory {
+      newController.bindWorkingDirectory(bound)
+    }
     terminalController = newController
 
     addChild(newController)
@@ -121,9 +154,14 @@ final class TerminalPanelViewController: NSViewController
     if collapsed {
       startTimer?.invalidate()
       startTimer = nil
-      terminalController.stopIfRunning()
+      // Hiding/detaching a panel must not terminate its shell or coding agent.
     }
-    else if isWindowMain {
+    else if isWindowMain && automaticStart {
+      guard !terminalController.hasStartedProcess else {
+        startTimer?.invalidate()
+        startTimer = nil
+        return
+      }
       guard startTimer == nil
       else { return }
 
@@ -144,6 +182,36 @@ final class TerminalPanelViewController: NSViewController
       startTimer?.invalidate()
       startTimer = nil
     }
+  }
+
+  @objc private func startNewTerminal(_ sender: Any?)
+  {
+    automaticStart = true
+    startButton?.removeFromSuperview()
+    startButton = nil
+    startIfVisible()
+  }
+
+  func suspendAutomaticStart()
+  {
+    automaticStart = false
+    startTimer?.invalidate()
+    startTimer = nil
+  }
+
+  func prepareForAdoption()
+  {
+    startTimer?.invalidate()
+    startTimer = nil
+    collapseObserver = nil
+    isWindowMain = false
+  }
+
+  func didAdopt()
+  {
+    observeCollapseState()
+    isWindowMain = view.window?.isMainWindow == true
+    startIfVisible()
   }
 
   private func startIfVisible()

@@ -41,6 +41,7 @@ public enum RepoError: Swift.Error, Equatable
   case patchMismatch
   case unexpected
   case workspaceDirty
+  case worktreeContextMismatch
   
   public static let genericGitError = Self.gitError(GIT_ERROR.rawValue)
   public static let bareRepo = Self.gitError(GIT_EBAREREPO.rawValue)
@@ -143,6 +144,8 @@ extension RepoError
         .unexpected
       case .workspaceDirty:
         .workspaceDirty
+      case .worktreeContextMismatch:
+        UIString(rawValue: "Terminal and Git worktree differ. Return the terminal to this worktree or complete the pending switch before changing Git state.")
     }
   }
 }

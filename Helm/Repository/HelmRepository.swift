@@ -45,6 +45,13 @@ public final class HelmRepository: BasicRepository, RepoConfiguring
   /// holds `objc_sync(self)` and used to take `mutex` (via `updateIsWriting`)
   /// to flip this flag, while `performReading`/`performWriting` hold `mutex`
   /// and then shell out to CLI git (`objc_sync(self)`) — opposite orders.
+  private let contextStateLock = NSLock()
+  private var contextWritesBlockedStorage = false
+  var contextWritesBlocked: Bool {
+    get { contextStateLock.withLock { contextWritesBlockedStorage } }
+    set { contextStateLock.withLock { contextWritesBlockedStorage = newValue } }
+  }
+
   private let writeStateLock = NSLock()
   private var isWritingStorage = false
 
@@ -321,6 +328,7 @@ public final class HelmRepository: BasicRepository, RepoConfiguring
 
     func runCommand() throws -> Data
     {
+      if writes && contextWritesBlocked { throw RepoError.worktreeContextMismatch }
       if writes && isWriting {
         repoLogger.publicError("""
             repository git rejected path=\(self.repoURL.path) writes=\(writes) \
@@ -380,6 +388,7 @@ extension HelmRepository: WritingManagement
 {
   public func performWriting(_ block: (() throws -> Void)) throws
   {
+    guard !contextWritesBlocked else { throw RepoError.worktreeContextMismatch }
     let started = Date()
 
     repoLogger.publicDebug("repository performWriting request path=\(self.repoURL.path)")

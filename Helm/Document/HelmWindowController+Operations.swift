@@ -22,6 +22,10 @@ extension HelmWindowController
   func startOperation(factory: () -> OperationController)
       -> OperationController?
   {
+    guard !worktreeTransitionPending else {
+      showErrorMessage(error: .worktreeContextMismatch)
+      return nil
+    }
     if let operation = currentOperation {
       repoLogger.publicError("""
           operation start blocked existing=\(operation.operationName)
@@ -92,6 +96,10 @@ extension HelmWindowController
     if currentOperation === operation {
       repoLogger.publicInfo("operation cleared name=\(operation.operationName)")
       currentOperation = nil
+      repoDocument?.repository?.contextWritesBlocked = worktreeTransitionPending
+      if let document = repoDocument {
+        (NSDocumentController.shared as? HelmDocumentController)?.worktrees.retryPending(document)
+      }
       startAutoFetch()
     }
     else {
