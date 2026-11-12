@@ -127,12 +127,19 @@ final class WorktreeLifecycleTests: XCTestCase
     target = record(); target.availability = .unavailable
     XCTAssertEqual(WorktreePolicy.transition(from: source, to: target, tabs: [source]), .unavailable)
   }
-  func testCloseCancelAndApprovedQuitDecisions() {
-    XCTAssertEqual(WorktreeClosePolicy.decision(runningTerminal: true, busyOperation: false), .confirm)
-    XCTAssertEqual(WorktreeClosePolicy.decision(runningTerminal: true, busyOperation: false, confirmation: false), .cancel)
-    XCTAssertEqual(WorktreeClosePolicy.decision(runningTerminal: true, busyOperation: false, confirmation: true), .allow)
-    XCTAssertEqual(WorktreeClosePolicy.decision(runningTerminal: true, busyOperation: true, terminationApproved: true), .allow)
-    XCTAssertEqual(WorktreeClosePolicy.decision(runningTerminal: false, busyOperation: false), .allow)
+  func testRestoreDoesNotReopenClosedRegisteredLinkedWorktrees() {
+    let primary = record("checkout", primary: true)
+    let remaining = record("keep"), closed = record("closed")
+    let primaryID = UUID(), remainingID = UUID()
+    let saved = [
+      WorktreeRestoreItem(sessionID: primaryID, binding: .init(record: primary)),
+      WorktreeRestoreItem(sessionID: remainingID, binding: .init(record: remaining))
+    ]
+    let restored = WorktreePolicy.restore(saved, inventories: [
+      common: .init(repositoryID: common, records: [primary, remaining, closed])
+    ])
+    XCTAssertEqual(restored.map(\.sessionID), [primaryID, remainingID])
+    XCTAssertEqual(restored.map { $0.binding.record.id }, [primary.id, remaining.id])
   }
 
   @MainActor final class Terminal {

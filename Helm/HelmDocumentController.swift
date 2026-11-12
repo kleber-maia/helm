@@ -49,27 +49,6 @@ final class HelmDocumentController: NSDocumentController
   func prepareForTermination() -> Bool
   {
     guard !worktrees.isTerminating else { return true }
-    worktrees.isConfirmingTermination = true
-    defer { worktrees.isConfirmingTermination = false }
-    let active = documents.compactMap { $0 as? RepoDocument }.contains {
-      $0.windowController?.terminalIsRunning == true ||
-      $0.windowController?.currentOperation != nil ||
-      $0.windowController?.repoController?.queue.isBusy == true
-    }
-    if active {
-      let alert = NSAlert()
-      alert.messageText = "Quit Helm and stop running sessions?"
-      alert.informativeText = "Open tabs will be restored next launch. Running terminals and Git operations cannot continue after quitting."
-      alert.addButton(withTitle: "Keep Helm Open")
-      alert.addButton(withTitle: "Quit and Stop Sessions")
-      guard alert.runModal() == .alertSecondButtonReturn else {
-        worktrees.isConfirmingTermination = false
-        for document in documents.compactMap({ $0 as? RepoDocument }) {
-          worktrees.retryPending(document)
-        }
-        return false
-      }
-    }
     sessions.prepareForTermination()
     worktrees.isTerminating = true
     return true

@@ -115,6 +115,7 @@ final class TerminalViewController: NSViewController
     view = container
   }
 
+  private var sessionClosed = false
   private var processStarted = false
   var hasStartedProcess: Bool { processStarted }
   private var ownedProcessIdentity: HelmProcessIdentity?
@@ -159,7 +160,7 @@ final class TerminalViewController: NSViewController
   /// Starts the terminal process if it has not already been started.
   func startIfNeeded()
   {
-    guard !processStarted
+    guard !sessionClosed, !processStarted
     else { return }
 
     // The delayed start alone is not a layout guarantee. Fit the renderer to
@@ -206,6 +207,22 @@ final class TerminalViewController: NSViewController
     terminalView.terminate()
     processStarted = false
     ownedProcessIdentity = nil
+  }
+
+  /// Permanent window close releases SwiftTerm's PTY/reaper ownership too.
+  /// terminate() alone only sends SIGTERM, which an interactive shell may ignore.
+  func finishSessionForClose()
+  {
+    guard !sessionClosed else { return }
+    sessionClosed = true
+    geometryReady = nil
+    directoryChanged = nil
+    sessionStateChanged = nil
+    stopIfRunning()
+    terminalView?.processDelegate = nil
+    terminalView?.geometryDidSettle = nil
+    terminalView?.removeFromSuperview()
+    terminalView = nil
   }
 
   /// Restarts the terminal with a new coding agent.
@@ -276,7 +293,7 @@ final class TerminalViewController: NSViewController
   /// idle timer, synthetic one-pixel resize or resize(cols:) soft reset.
   func requestGeometrySynchronization(phase: String, force: Bool = false)
   {
-    guard isViewLoaded, !synchronizingGeometry else { return }
+    guard !sessionClosed, isViewLoaded, !synchronizingGeometry else { return }
     geometryPhase = phase
     geometryForcePending = geometryForcePending || force
     guard !geometryScheduled else { return }

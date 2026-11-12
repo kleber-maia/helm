@@ -994,6 +994,13 @@ extension HelmWindowController: NSWindowDelegate
       (NSDocumentController.shared as? HelmDocumentController)?
         .sessions.willClose(repoDocument)
     }
+    // Native tab/window close can bypass NSDocument.close. A transferred
+    // panel belongs to its destination; only stop the panel still owned here.
+    if let panel = terminalPanelController, panel.parent === splitViewController {
+      repoDocument?.closeApproved = true
+      panel.suspendAutomaticStart()
+      panel.terminalController.finishSessionForClose()
+    }
     stopAutoFetch()
     titleBarController.spinner?.unbind(◊"hidden")
     // For some reason this avoids a crash

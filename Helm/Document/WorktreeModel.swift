@@ -272,16 +272,3 @@ struct RepositoryColorAssignments: Codable, Equatable
     return chosen
   }
 }
-
-enum WorktreeClosePolicy
-{
-  enum Decision: Equatable { case allow, confirm, cancel }
-  static func decision(runningTerminal: Bool, busyOperation: Bool,
-                       terminationApproved: Bool = false,
-                       confirmation: Bool? = nil) -> Decision
-  {
-    guard !terminationApproved, runningTerminal || busyOperation else { return .allow }
-    guard let confirmation else { return .confirm }
-    return confirmation ? .allow : .cancel
-  }
-}
