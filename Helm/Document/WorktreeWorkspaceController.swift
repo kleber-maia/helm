@@ -441,6 +441,13 @@ final class WorktreeWorkspaceController: NSObject
     return inventories[common]?.records.filter { !$0.isPrimary }.count
   }
 
+  /// Last successful Git inventory, including unavailable/locked registrations.
+  /// A refresh failure must not enable branches known to belong to another tree.
+  func linkedWorktreeBranchRefs(for common: String) -> Set<String>
+  {
+    WorktreeBranchPolicy.linkedLocalRefs(in: inventories[common])
+  }
+
   private func register(_ inventory: WorktreeInventory)
   {
     inventories[inventory.repositoryID] = inventory

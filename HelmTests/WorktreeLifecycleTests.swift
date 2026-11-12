@@ -22,6 +22,40 @@ final class WorktreeLifecycleTests: XCTestCase
     XCTAssertEqual(primary.branch, "trunk"); XCTAssertTrue(primary.isPrimary)
     XCTAssertEqual(linked.branch, "main"); XCTAssertFalse(linked.isPrimary)
   }
+  func testPrimaryCurrentAndUnassignedBranchesRemainUsable() {
+    let owned: Set<String> = ["refs/heads/main"]
+    for ref in ["refs/heads/trunk", "refs/heads/unassigned"] {
+      XCTAssertTrue(WorktreeBranchPolicy.isVisible(ref, current: "refs/heads/trunk", primary: true))
+      XCTAssertFalse(WorktreeBranchPolicy.isDisabled(ref, primary: true, linkedRefs: owned))
+      XCTAssertTrue(WorktreeBranchPolicy.allowsSelection(ref, current: "refs/heads/trunk",
+          primary: true, linkedRefs: owned))
+    }
+    XCTAssertTrue(WorktreeBranchPolicy.isVisible("refs/heads/main", current: "refs/heads/trunk", primary: true))
+    XCTAssertTrue(WorktreeBranchPolicy.isDisabled("refs/heads/main", primary: true, linkedRefs: owned))
+    XCTAssertFalse(WorktreeBranchPolicy.allowsSelection("refs/heads/main", current: "refs/heads/trunk",
+        primary: true, linkedRefs: owned))
+  }
+
+  func testRemoteTrackingRefDoesNotCollideWithLinkedLocalBranch() {
+    let owned: Set<String> = ["refs/heads/feature/owned"]
+    XCTAssertTrue(WorktreeBranchPolicy.isDisabled("refs/heads/feature/owned", primary: true, linkedRefs: owned))
+    XCTAssertFalse(WorktreeBranchPolicy.isDisabled("refs/remotes/origin/feature/owned", primary: true, linkedRefs: owned))
+    XCTAssertFalse(WorktreeBranchPolicy.isDisabled("refs/heads/owned", primary: true, linkedRefs: owned))
+  }
+
+  func testLinkedVisibilityAndSelectionFollowCurrentHEADIncludingDetached() {
+    let old = "refs/heads/feature/old", new = "refs/heads/feature/new"
+    let owned: Set<String> = [old, new]
+    XCTAssertTrue(WorktreeBranchPolicy.allowsSelection(old, current: old, primary: false, linkedRefs: owned))
+    XCTAssertFalse(WorktreeBranchPolicy.isVisible(new, current: old, primary: false))
+    XCTAssertFalse(WorktreeBranchPolicy.allowsSelection(old, current: new, primary: false, linkedRefs: owned))
+    XCTAssertTrue(WorktreeBranchPolicy.allowsSelection(new, current: new, primary: false, linkedRefs: owned))
+    for ref in [old, new] {
+      XCTAssertFalse(WorktreeBranchPolicy.isVisible(ref, current: nil, primary: false))
+      XCTAssertFalse(WorktreeBranchPolicy.allowsSelection(ref, current: nil, primary: false, linkedRefs: owned))
+    }
+  }
+
   func testPrimaryOrderingPreservesOtherSessionsAndIdentities() {
     let linked = tab(record()), primary = tab(record("checkout", primary: true))
     let another = tab(record("other"))

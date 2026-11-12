@@ -115,6 +115,8 @@ final class SidebarCoordinator: ObservableObject
   /// Current selection in the unified sidebar tree.
   @Published var selection: SidebarTreeSelection?
 
+  @Published var linkedWorktreeBranchRefs: Set<String> = []
+
   @Published var repositoryColor: NSColor = .controlAccentColor
 
   /// Graph line color of the HEAD commit, updated by the history view.

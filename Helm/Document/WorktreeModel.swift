@@ -29,6 +29,36 @@ struct WorktreeInventory: Equatable, Sendable
   var primary: WorktreeRecord? { records.first { $0.isPrimary } }
 }
 
+/// Shared by sidebar visibility, row enablement and command dispatch.
+enum WorktreeBranchPolicy
+{
+  static func linkedLocalRefs(in inventory: WorktreeInventory?) -> Set<String>
+  {
+    Set((inventory?.records ?? []).compactMap { record in
+      guard !record.isPrimary, let branch = record.branch else { return nil }
+      return "refs/heads/" + branch
+    })
+  }
+
+  static func isVisible(_ localRef: String, current: String?, primary: Bool) -> Bool
+  {
+    primary || localRef == current
+  }
+
+  static func isDisabled(_ localRef: String, primary: Bool,
+                         linkedRefs: Set<String>) -> Bool
+  {
+    primary && linkedRefs.contains(localRef)
+  }
+
+  static func allowsSelection(_ localRef: String, current: String?, primary: Bool,
+                              linkedRefs: Set<String>) -> Bool
+  {
+    isVisible(localRef, current: current, primary: primary) &&
+      !isDisabled(localRef, primary: primary, linkedRefs: linkedRefs)
+  }
+}
+
 struct WorktreeBinding: Codable, Equatable, Sendable
 {
   var record: WorktreeRecord

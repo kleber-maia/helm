@@ -159,7 +159,7 @@ struct TabbedSidebar<Brancher, Manager, Referencer, Stasher, Tagger, SubManager>
     switch node.item {
       case .section: nil
       case .staging: .staging
-      case .localBranch(let b): .localBranch(b.refName)
+      case .localBranch(let b): isBranchDisabled(b.refName) ? nil : .localBranch(b.refName)
       case .remote(let name): .remote(name: name)
       case .remoteBranch(let b): .remoteBranch(ref: b.refName)
       case .tag(let t): .tag(t.name)
@@ -240,6 +240,12 @@ struct TabbedSidebar<Brancher, Manager, Referencer, Stasher, Tagger, SubManager>
     }
   }
 
+  private func isBranchDisabled(_ ref: LocalBranchRefName) -> Bool
+  {
+    WorktreeBranchPolicy.isDisabled(ref.fullPath, primary: model.isPrimaryWorktree,
+        linkedRefs: coordinator.linkedWorktreeBranchRefs)
+  }
+
   @ViewBuilder
   private func branchRow(for node: PathTreeNode<SidebarTreeItem>,
                          branch: BranchListItem) -> some View
@@ -251,6 +257,11 @@ struct TabbedSidebar<Brancher, Manager, Referencer, Stasher, Tagger, SubManager>
     }, contextMenu: {
       branchContextMenu(for: branch)
     })
+      .disabled(isBranchDisabled(branch.refName))
+      .selectionDisabled(isBranchDisabled(branch.refName))
+      .foregroundStyle(isBranchDisabled(branch.refName) ? .secondary : .primary)
+      .environment(\.sidebarIconColor, isBranchDisabled(branch.refName)
+                   ? NSColor.disabledControlTextColor : coordinator.repositoryColor)
   }
 
   @ViewBuilder
@@ -281,6 +292,7 @@ struct TabbedSidebar<Brancher, Manager, Referencer, Stasher, Tagger, SubManager>
     }, contextMenu: {
       remoteBranchContextMenu(for: branch.refName)
     })
+
   }
 
   @ViewBuilder
@@ -370,7 +382,8 @@ struct TabbedSidebar<Brancher, Manager, Referencer, Stasher, Tagger, SubManager>
   {
     let branch = selectedLocalBranchItem
     let branchRef = branch?.refName
-    let canEdit = branch != nil && branch?.isCurrent == false
+    let canEdit = branch != nil && branch?.isCurrent == false &&
+        branch.map { !isBranchDisabled($0.refName) } == true
     let canMerge = canEdit
 
     Button("New branch...", systemImage: "plus") {

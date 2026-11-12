@@ -108,6 +108,7 @@ extension HelmWindowController: WorktreeTerminalHost
 
   func refreshWorktreePresentation()
   {
+    tabbedSidebarController?.updateWorktreeBranches()
     refreshWorktreesToolbarImage()
     guard let binding = repoDocument?.worktreeBinding,
           let workspace = (NSDocumentController.shared as? HelmDocumentController)?

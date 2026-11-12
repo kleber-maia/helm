@@ -153,6 +153,7 @@ final class SidebarViewModel<Brancher, Manager, Referencer, Stasher, Tagger, Sub
         Brancher.LocalBranch == Referencer.LocalBranch
 {
   let brancher: Brancher
+  let isPrimaryWorktree: Bool
   let manager: Manager
   let referencer: Referencer
   let stasher: Stasher
@@ -178,9 +179,11 @@ final class SidebarViewModel<Brancher, Manager, Referencer, Stasher, Tagger, Sub
        stasher: Stasher,
        submoduleManager: SubManager,
        tagger: Tagger,
-       workspaceCountModel: WorkspaceStatusCountModel)
+       workspaceCountModel: WorkspaceStatusCountModel,
+       isPrimaryWorktree: Bool = true)
   {
     self.brancher = brancher
+    self.isPrimaryWorktree = isPrimaryWorktree
     self.manager = remoteManager
     self.referencer = referencer
     self.stasher = stasher
@@ -273,6 +276,8 @@ final class SidebarViewModel<Brancher, Manager, Referencer, Stasher, Tagger, Sub
   {
     let currentBranch = brancher.currentBranch
     let branches = brancher.localBranches
+      .filter { WorktreeBranchPolicy.isVisible($0.referenceName.fullPath,
+          current: currentBranch?.fullPath, primary: isPrimaryWorktree) }
       .sorted(byKeyPath: \.referenceName.fullPath)
       .map {
         SidebarTreeItem.localBranch(
@@ -291,7 +296,7 @@ final class SidebarViewModel<Brancher, Manager, Referencer, Stasher, Tagger, Sub
   {
     var branchesByRemote: [String: [SidebarRemoteBranchItem]] = [:]
 
-    for branch in brancher.remoteBranches {
+    for branch in brancher.remoteBranches where isPrimaryWorktree {
       if let remoteName = branch.remoteName {
         branchesByRemote[remoteName, default: []]
           .append(.init(refName: branch.referenceName))

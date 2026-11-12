@@ -17,6 +17,25 @@ final class WorktreeCatalogTests: XCTestCase
     XCTAssertFalse(inventory.records[1].isPrimary); XCTAssertEqual(inventory.records[1].branch, "main")
     XCTAssertEqual(inventory.records[1].id, common + "/worktrees/linked")
   }
+  func testBranchMembershipIncludesLockedUnavailableRegistrationsAndSkipsDetached() throws {
+    let text = "worktree /trees/root\0HEAD \(sha)\0branch refs/heads/trunk\0\0" +
+      "worktree /trees/offline\0HEAD \(sha)\0branch refs/heads/feature/owned\0locked offline\0prunable missing\0\0" +
+      "worktree /trees/detached\0HEAD \(sha)\0detached\0\0"
+    let inventory = try parse(text, metadata: ["/trees/offline": common + "/worktrees/offline",
+        "/trees/detached": common + "/worktrees/detached"], exists: { $0 != "/trees/offline" })
+    XCTAssertEqual(WorktreeBranchPolicy.linkedLocalRefs(in: inventory), ["refs/heads/feature/owned"])
+  }
+
+  func testRegisteredBranchMembershipTracksRenameCheckoutAndRemoval() throws {
+    let primary = "worktree /trees/root\0HEAD \(sha)\0branch refs/heads/trunk\0\0"
+    let metadata = ["/trees/linked": common + "/worktrees/linked"]
+    for name in ["feature/old", "feature/renamed", "other"] {
+      let inventory = try parse(primary + "worktree /trees/linked\0HEAD \(sha)\0branch refs/heads/\(name)\0\0", metadata: metadata)
+      XCTAssertEqual(WorktreeBranchPolicy.linkedLocalRefs(in: inventory), ["refs/heads/" + name])
+    }
+    XCTAssertTrue(WorktreeBranchPolicy.linkedLocalRefs(in: try parse(primary)).isEmpty)
+  }
+
   func testGitMoveKeepsPrivateDirectoryIdentity() throws {
     let prefix = "worktree /trees/root\0HEAD \(sha)\0branch refs/heads/trunk\0\0"
     let before = try parse(prefix + "worktree /trees/old\0HEAD \(sha)\0detached\0\0",

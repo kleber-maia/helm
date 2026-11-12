@@ -42,7 +42,8 @@ final class TabbedSidebarController: NSHostingController<AnyView>
                                       stasher: repo,
                                       submoduleManager: repo,
                                       tagger: repo,
-                                      workspaceCountModel: workspaceCountModel)
+                                      workspaceCountModel: workspaceCountModel,
+                                      isPrimaryWorktree: controller.repoDocument?.worktreeBinding?.record.isPrimary != false)
     self.viewModels = viewModels
 
     coordinator.expandedItems = .init(
@@ -63,6 +64,7 @@ final class TabbedSidebarController: NSHostingController<AnyView>
 
     super.init(rootView: AnyView(view))
     updateRepositoryColor()
+    updateWorktreeBranches()
     notificationObservers.append(NotificationCenter.default.addObserver(
         forName: .sidebarRepositoryColorDidChange, object: nil, queue: .main) {
       [weak self] note in
@@ -86,6 +88,24 @@ final class TabbedSidebarController: NSHostingController<AnyView>
           let workspace = (NSDocumentController.shared as? HelmDocumentController)?.worktrees else { return }
     let color = workspace.color(for: common)
     if coordinator.repositoryColor != color { coordinator.repositoryColor = color }
+  }
+
+  func updateWorktreeBranches()
+  {
+    let refs = linkedWorktreeBranchRefs
+    guard coordinator.linkedWorktreeBranchRefs != refs else { return }
+    coordinator.linkedWorktreeBranchRefs = refs
+    if case .localBranch(let ref)? = coordinator.selection,
+       isPrimaryWorktree, refs.contains(ref.fullPath) {
+      coordinator.selection = nil
+    }
+  }
+
+  private var linkedWorktreeBranchRefs: Set<String> {
+    guard let common = controller?.repoDocument?.worktreeBinding?.record.repositoryID,
+          let workspace = (NSDocumentController.shared as? HelmDocumentController)?.worktrees
+    else { return [] }
+    return workspace.linkedWorktreeBranchRefs(for: common)
   }
 
   override func viewDidLoad()
@@ -241,12 +261,14 @@ final class TabbedSidebarController: NSHostingController<AnyView>
       case .staging:
         controller?.selection = StagingSelection(repository: repo, amending: false)
       case .localBranch(let refName):
-        guard let branch = repo.localBranch(named: refName),
+        guard allowsBranchSelection(refName),
+              let branch = repo.localBranch(named: refName),
               let commit = branch.targetCommit
         else { return }
         controller?.selection = CommitSelection(repository: repo, commit: commit)
       case .remoteBranch(let refName):
-        guard let branch = repo.remoteBranch(named: refName.localName,
+        guard isPrimaryWorktree,
+              let branch = repo.remoteBranch(named: refName.localName,
                                              remote: refName.remoteName),
               let commit = branch.targetCommit
         else { return }
@@ -263,6 +285,17 @@ final class TabbedSidebarController: NSHostingController<AnyView>
       case .section, .remote, .submodule, .none:
         return
     }
+  }
+
+  private var isPrimaryWorktree: Bool {
+    controller?.repoDocument?.worktreeBinding?.record.isPrimary != false
+  }
+
+  private func allowsBranchSelection(_ ref: LocalBranchRefName) -> Bool
+  {
+    WorktreeBranchPolicy.allowsSelection(ref.fullPath,
+        current: controller?.repository.currentBranch?.fullPath,
+        primary: isPrimaryWorktree, linkedRefs: linkedWorktreeBranchRefs)
   }
 
   private func mergeLocalBranch(_ refName: LocalBranchRefName)
@@ -435,6 +468,7 @@ extension TabbedSidebarController: SidebarCoordinatorDelegate
 
   func checkoutBranch(_ branch: LocalBranchRefName)
   {
+    guard allowsBranchSelection(branch) else { return }
     executeAndReport({
       try self.controller?.repository.checkOut(branch: branch)
     }, onSuccess: notifyRefsAndIndexChanged)
@@ -442,11 +476,13 @@ extension TabbedSidebarController: SidebarCoordinatorDelegate
 
   func mergeBranch(_ branch: LocalBranchRefName)
   {
+    guard allowsBranchSelection(branch) else { return }
     mergeLocalBranch(branch)
   }
 
   func renameBranch(_ branch: LocalBranchRefName)
   {
+    guard allowsBranchSelection(branch) else { return }
     guard let controller else { return }
     controller.startOperation {
       RenameBranchOpController(windowController: controller, branchName: branch)
@@ -455,6 +491,7 @@ extension TabbedSidebarController: SidebarCoordinatorDelegate
 
   func deleteBranch(_ branch: LocalBranchRefName)
   {
+    guard allowsBranchSelection(branch) else { return }
     let hasTrackingBranch =
         controller?.repository.localBranch(named: branch)?.trackingBranch != nil
     let info: UIString? = hasTrackingBranch ? .remoteBranchNotDeleted : nil
@@ -468,6 +505,7 @@ extension TabbedSidebarController: SidebarCoordinatorDelegate
 
   func deleteBranchAndRemote(_ branch: LocalBranchRefName)
   {
+    guard allowsBranchSelection(branch) else { return }
     guard let controller else { return }
     controller.startOperation {
       DeleteBranchOpController(branch: branch, windowController: controller)
@@ -476,7 +514,7 @@ extension TabbedSidebarController: SidebarCoordinatorDelegate
 
   func createTrackingBranch(_ branch: RemoteBranchRefName)
   {
-    guard let controller else { return }
+    guard isPrimaryWorktree, let controller else { return }
     controller.startOperation {
       CheckOutRemoteOpController(windowController: controller, branch: branch)
     }
@@ -484,6 +522,7 @@ extension TabbedSidebarController: SidebarCoordinatorDelegate
 
   func mergeRemoteBranch(_ branch: RemoteBranchRefName)
   {
+    guard isPrimaryWorktree else { return }
     performMergeRemoteBranch(branch)
   }
 
