@@ -58,7 +58,7 @@
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.developer-tools</string>
 	<key>LSMinimumSystemVersion</key>
@@ -67,5 +67,23 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>HelmApplication</string>
+	<key>SUFeedURL</key>
+	<string>https://raw.githubusercontent.com/kleber-maia/helm/main/updates/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>CEhEsGG+5sDU++A3uG3lPq1t7wZZDDGfDYzXt/JMDVk=</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUScheduledCheckInterval</key>
+	<integer>3600</integer>
+	<key>SUAutomaticallyUpdate</key>
+	<false/>
+	<key>SUAllowsAutomaticUpdates</key>
+	<false/>
+	<key>SURequireSignedFeed</key>
+	<true/>
+	<key>SUSignedFeedFailureExpirationInterval</key>
+	<integer>0</integer>
+	<key>SUVerifyUpdateBeforeExtraction</key>
+	<true/>
 </dict>
 </plist>

@@ -12,6 +12,19 @@ state, review, and commit decisions stay visible and under your control. Helm is
 built with Swift, AppKit, SwiftUI, and libgit2, with a focus on native macOS
 performance and a contributor-friendly codebase.
 
+## Download and updates
+
+Download Helm from [GitHub Releases](https://github.com/kleber-maia/helm/releases).
+The packaged app requires Apple Silicon and macOS 26 or later. See the release
+notes for signing details.
+
+Install v1.0b22 (or later) manually once to enable updates. While Helm is open,
+it checks hourly. To check immediately, choose **Helm → Check for Updates…**.
+Helm downloads the signed GitHub release and installs and relaunches when you
+accept the update. Save terminal work before relaunching.
+
+Maintainers: [how to publish a signed update](updates/README.md).
+
 ## Highlights
 
 - Browse commit history with branch graph visualization.

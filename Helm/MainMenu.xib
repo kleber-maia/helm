@@ -22,6 +22,9 @@
                                     <action selector="orderFrontStandardAboutPanel:" target="-2" id="142"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="Check for Updates…" id="Helm-Check-Updates">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                            </menuItem>
                             <menuItem isSeparatorItem="YES" id="236">
                                 <modifierMask key="keyEquivalentModifierMask" command="YES"/>
                             </menuItem>
@@ -516,6 +519,7 @@ DQ
         <customObject id="419" customClass="NSFontManager"/>
         <customObject id="530" customClass="AppDelegate" customModule="Helm" customModuleProvider="target">
             <connections>
+                <outlet property="checkForUpdatesMenuItem" destination="Helm-Check-Updates" id="Helm-Updates-Outlet"/>
                 <outlet property="remoteSettingsSubmenu" destination="Od6-Cb-gjd" id="9dF-Gc-ELK"/>
             </connections>
         </customObject>

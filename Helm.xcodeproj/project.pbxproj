@@ -32,6 +32,7 @@
 /* End PBXAggregateTarget section */
 
 /* Begin PBXBuildFile section */
+		E7D100000000000000000001 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = E7D100000000000000000003 /* Sparkle */; };
 		16632F603F3B44E360177CEA /* HelmWindowController+CustomActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3BFD943A797D6477CD66BA5 /* HelmWindowController+CustomActions.swift */; };
 		31A893A013E9DA5B008BE0C2 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 31A8939F13E9DA5B008BE0C2 /* WebKit.framework */; };
 		34297D13CB2B7002276725D9 /* CStringInterop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BA229508B6017AB17EF719D /* CStringInterop.swift */; };
@@ -239,6 +240,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E7D100000000000000000001 /* Sparkle in Frameworks */,
 				92CA96052F8BDB8E00906BCF /* SwiftTerm in Frameworks */,
 				31A893A013E9DA5B008BE0C2 /* WebKit.framework in Frameworks */,
 				C3FA470113D0F8E200AC4F9B /* Cocoa.framework in Frameworks */,
@@ -471,6 +473,7 @@
 			);
 			name = Helm;
 			packageProductDependencies = (
+				E7D100000000000000000003 /* Sparkle */,
 				89F24B832C498878007D632E /* FakedMacro */,
 				92CA96042F8BDB8E00906BCF /* SwiftTerm */,
 			);
@@ -526,6 +529,7 @@
 			);
 			mainGroup = C3FA46F113D0F8E200AC4F9B;
 			packageReferences = (
+				E7D100000000000000000002 /* XCRemoteSwiftPackageReference "Sparkle" */,
 				89F24B822C498878007D632E /* XCRemoteSwiftPackageReference "FakedMacro" */,
 				92CA96032F8BDB8E00906BCF /* XCRemoteSwiftPackageReference "SwiftTerm" */,
 			);
@@ -799,7 +803,8 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)",
 				);
-				MARKETING_VERSION = 1.0b21;
+				CURRENT_PROJECT_VERSION = 22;
+				MARKETING_VERSION = 1.0b22;
 				OTHER_CODE_SIGN_FLAGS = "--deep";
 				PRODUCT_BUNDLE_IDENTIFIER = group.soft.HelmIDE;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -966,7 +971,8 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)",
 				);
-				MARKETING_VERSION = 1.0b21;
+				CURRENT_PROJECT_VERSION = 22;
+				MARKETING_VERSION = 1.0b22;
 				OTHER_CODE_SIGN_FLAGS = "--deep";
 				PRODUCT_BUNDLE_IDENTIFIER = group.soft.HelmIDE;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1021,7 +1027,8 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)",
 				);
-				MARKETING_VERSION = 1.0b21;
+				CURRENT_PROJECT_VERSION = 22;
+				MARKETING_VERSION = 1.0b22;
 				OTHER_CODE_SIGN_FLAGS = "--deep";
 				PRODUCT_BUNDLE_IDENTIFIER = group.soft.HelmIDE;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1192,6 +1199,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		E7D100000000000000000002 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = exactVersion;
+				version = 2.10.1;
+			};
+		};
 		89F24B822C498878007D632E /* XCRemoteSwiftPackageReference "FakedMacro" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Uncommon/FakedMacro";
@@ -1211,6 +1226,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		E7D100000000000000000003 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E7D100000000000000000002 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
 		89F24B832C498878007D632E /* FakedMacro */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 89F24B822C498878007D632E /* XCRemoteSwiftPackageReference "FakedMacro" */;

@@ -1,4 +1,5 @@
 import AppKit
+import Sparkle
 
 @objc(HelmApplication)
 final class HelmApplication: NSApplication
@@ -52,6 +53,10 @@ final class AppDelegate: NSObject
 {
   var openPanel: NSOpenPanel?
 
+  private let updaterController = SPUStandardUpdaterController(
+      startingUpdater: false, updaterDelegate: nil, userDriverDelegate: nil)
+
+  @IBOutlet var checkForUpdatesMenuItem: NSMenuItem!
   @IBOutlet var remoteSettingsSubmenu: NSMenu!
   
   @IBAction
@@ -179,6 +184,13 @@ extension AppDelegate: NSApplicationDelegate
   
   func applicationDidFinishLaunching(_ note: Notification)
   {
+    // Sparkle owns menu validation, scheduling, and the interactive install UI.
+    // Automatic installation is disallowed in Info.plist to protect terminals.
+    checkForUpdatesMenuItem.target = updaterController
+    checkForUpdatesMenuItem.action =
+      #selector(SPUStandardUpdaterController.checkForUpdates(_:))
+    updaterController.startUpdater()
+
     (NSDocumentController.shared as? HelmDocumentController)?
       .sessions.restoreIfNeeded()
     if !UserDefaults.standard.bool(forKey: "noServices") {
