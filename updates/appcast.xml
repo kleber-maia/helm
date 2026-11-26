@@ -1,0 +1,27 @@
+<?xml version="1.0" standalone="yes"?><!-- sparkle-sign-warning:
+IMPORTANT: This file was signed by Sparkle. Any modifications to this file requires re-signing this file with generate_appcast or sign_update! The signed signature will be embedded at the end of this file.
+--><rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+    <channel>
+        <title>Helm</title>
+        <item>
+            <title>1.0b22</title>
+            <pubDate>Wed, 25 Nov 2026 21:21:27 -0500</pubDate>
+            <sparkle:version>22</sparkle:version>
+            <sparkle:shortVersionString>1.0b22</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description><![CDATA[<h2>In-app updates</h2>
+<ul>
+  <li>Helm checks for new GitHub releases once an hour while it is open.</li>
+  <li>Choose Helm → Check for Updates… to check immediately.</li>
+  <li>Helm verifies the update, downloads it, and installs and relaunches when you accept it.</li>
+</ul>
+<p>Install this version manually once to enable future in-app updates. Save terminal work before relaunching.</p>
+]]></description>
+            <enclosure url="https://github.com/kleber-maia/helm/releases/download/v1.0b22/Helm-1.0b22-arm64.zip" length="9497085" type="application/octet-stream" sparkle:edSignature="Ry5Gm5+Etnh9H5u77b/PEpau686Euy3iz7QlwXxQ9vgBUcPsUlg9OLlU/vh1xLz8LllyiX7jfCBvNTpJvR7LDw=="></enclosure>
+        </item>
+    </channel>
+</rss><!-- sparkle-signatures:
+edSignature: FyVjBWAJ1Juunkt7+IRMef72oToXcvFcPZUtTREnt2VAhFa8XzZ/jpUqghJKGtB8oxyhLlLVGLoM4UHL7UPZDg==
+length: 1570
+-->
